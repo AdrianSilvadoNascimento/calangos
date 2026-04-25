@@ -1,6 +1,6 @@
 substitutions:
   _REGION: us-east1
-  _REPO: enxoval
+  _REPO: enxoval-prod
   _IMAGE: api
   _SHA: latest
 

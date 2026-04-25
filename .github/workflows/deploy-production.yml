@@ -24,7 +24,7 @@ jobs:
 
     env:
       GCP_REGION: us-east1
-      AR_REPO: enxoval
+      AR_REPO: enxoval-prod
       SERVICE: enxoval-api-prod
       IMAGE_NAME: api
 
