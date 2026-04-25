@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@enxoval/db/schema": ["../../packages/db/dist/schema/index"],
+      "@enxoval/db": ["../../packages/db/dist/index"],
+      "@enxoval/contracts": ["../../packages/contracts/dist/index"],
+      "@enxoval/utils": ["../../packages/utils/dist/index"],
+      "@enxoval/env/server": ["../../packages/env/dist/server"],
+      "@enxoval/env/client": ["../../packages/env/dist/client"],
+      "@enxoval/env": ["../../packages/env/dist/index"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "test"]
+}

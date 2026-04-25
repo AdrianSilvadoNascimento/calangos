@@ -1,0 +1,32 @@
+{
+  "name": "@enxoval/auth-client",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@better-auth/expo": "^1.6.6",
+    "@enxoval/env": "workspace:*",
+    "better-auth": "^1.6.6",
+    "expo-secure-store": "~15.0.8"
+  },
+  "devDependencies": {
+    "@enxoval/config-ts": "workspace:*",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "react": "*"
+  }
+}

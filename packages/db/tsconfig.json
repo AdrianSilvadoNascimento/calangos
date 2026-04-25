@@ -1,0 +1,18 @@
+{
+  "extends": "@enxoval/config-ts/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "composite": false,
+    "declaration": true,
+    "declarationMap": false,
+    "paths": {
+      "@enxoval/env/server": ["../../packages/env/dist/server"],
+      "@enxoval/env/client": ["../../packages/env/dist/client"],
+      "@enxoval/env": ["../../packages/env/dist/index"]
+    }
+  },
+  "include": ["src"]
+}

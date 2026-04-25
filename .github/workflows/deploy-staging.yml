@@ -1,0 +1,38 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy to Cloud Run (Staging)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_STAGING_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_STAGING_PROJECT_ID }}
+          install_components: 'beta'
+
+      - name: Build image via Cloud Build
+        run: gcloud builds submit --config apps/api/cloudbuild-staging.yaml .
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud beta run deploy enxoval-api-staging \
+            --image gcr.io/${{ secrets.GCP_STAGING_PROJECT_ID }}/staging \
+            --region us-east1 \
+            --port 3000 \
+            --platform managed \
+            --allow-unauthenticated

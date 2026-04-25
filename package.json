@@ -1,0 +1,31 @@
+{
+  "name": "enxoval",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev --filter=api --filter=mobile --filter=tunnel --ui=tui",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "test": "turbo test",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "turbo db:migrate",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "turbo",
+      "@swc/core",
+      "better-sqlite3"
+    ]
+  }
+}
