@@ -1,66 +1,79 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_VERSION=24-alpine
+ARG TURBO_VERSION=2.5.0
+ARG PNPM_VERSION=9.15.0
+
 # ==========================================
-# Stage 1: Pruner (Isolates the API workspace)
+# Stage 1: Pruner — isolates the API workspace
 # ==========================================
-FROM node:24-alpine AS pruner
+FROM node:${NODE_VERSION} AS pruner
+ARG TURBO_VERSION
 RUN apk add --no-cache libc6-compat
-# Enable pnpm
-RUN corepack enable pnpm
 WORKDIR /app
 
-# Install turbo globally
-RUN npm install -g turbo
+RUN npm install -g turbo@${TURBO_VERSION}
 
-# Copy all source code
 COPY . .
 
-# Prune the monorepo keeping only what's needed for the API
 RUN turbo prune api --docker
 
 # ==========================================
-# Stage 2: Installer (Install deps and Build)
+# Stage 2: Installer — install all deps and build
 # ==========================================
-FROM node:24-alpine AS installer
+FROM node:${NODE_VERSION} AS installer
+ARG PNPM_VERSION
 RUN apk add --no-cache libc6-compat
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
-# 1. Copy isolated package.json's and pnpm-lock.yaml
-COPY .gitignore .gitignore
-COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/json/ ./
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# 2. Install dependencies (using frozen-lockfile for deterministic builds)
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
-# 3. Copy source code of isolated subworkspace
-COPY --from=pruner /app/out/full/ .
+COPY --from=pruner /app/out/full/ ./
 
-# 4. Build the API and its dependencies
 RUN pnpm turbo build --filter=api
 
 # ==========================================
-# Stage 3: Runner (Production Image)
+# Stage 3: Prod-deps — production-only node_modules
 # ==========================================
-FROM node:24-alpine AS runner
-RUN corepack enable pnpm
+FROM node:${NODE_VERSION} AS prod-deps
+ARG PNPM_VERSION
+RUN apk add --no-cache libc6-compat
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
-# We need the node_modules with hoisted dependencies
-COPY --from=installer /app/node_modules ./node_modules
-COPY --from=installer /app/package.json ./
-COPY --from=installer /app/pnpm-workspace.yaml ./
+COPY --from=pruner /app/out/json/ ./
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Copy built internal packages
-COPY --from=installer /app/packages ./packages
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
-# Copy the built API
-COPY --from=installer /app/apps/api ./apps/api
+# ==========================================
+# Stage 4: Runner — minimal production image
+# ==========================================
+FROM node:${NODE_VERSION} AS runner
+RUN apk add --no-cache libc6-compat tini
+WORKDIR /app
 
-# Default to port 3000
-EXPOSE 3000
+ENV NODE_ENV=production
+USER node
+
+COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=installer /app/package.json ./
+COPY --chown=node:node --from=installer /app/pnpm-workspace.yaml ./
+
+COPY --chown=node:node --from=installer /app/packages ./packages
+COPY --chown=node:node --from=installer /app/apps/api ./apps/api
 
 WORKDIR /app/apps/api
 
-# Start the NestJS application
+EXPOSE 8080
+
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/main.js"]
