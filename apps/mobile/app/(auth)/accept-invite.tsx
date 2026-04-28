@@ -130,13 +130,11 @@ export default function AcceptInviteScreen() {
   if (!resolvedToken) {
     return (
       <SafeAreaView className="flex-1 bg-surface-900">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-        >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <ScrollView
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           >
             <View className="px-8 py-8">
               <Text className="text-3xl font-bold text-white mb-2">
@@ -236,13 +234,11 @@ export default function AcceptInviteScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <View className="px-8 py-8">
             <Text className="text-3xl font-bold text-white mb-2">

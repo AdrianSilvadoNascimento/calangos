@@ -21,6 +21,7 @@ import { useUpdateRoom } from '../../hooks/use-update-room';
 import { useCoupleMembers } from '../../hooks/use-couple-members';
 import { useClipboardSuggestion } from '../../stores/clipboard-suggestion';
 import { checkClipboardForUrl } from '../../lib/clipboard-watcher';
+import { InfiniteList } from '../../components/infinite-list';
 
 const HTTP_URL = /^(https?:\/\/)/i;
 
@@ -32,7 +33,7 @@ const EMOJI_OPTIONS = [
 export default function RoomsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: rooms, isPending, isError, refetch } = useRooms();
+  const roomsQuery = useRooms();
   const { data: members } = useCoupleMembers();
   const createRoom = useCreateRoom();
   const updateRoom = useUpdateRoom();
@@ -122,14 +123,16 @@ export default function RoomsScreen() {
   };
 
   const needsInvite = !members || members.count < 2;
+  const totalRooms =
+    roomsQuery.data?.pages.reduce((acc, p) => acc + p.items.length, 0) ?? 0;
 
-  return (
-    <SafeAreaView className="flex-1 bg-surface-900">
+  const ListHeader = (
+    <View>
       <View className="px-6 pt-4 pb-6">
         <Text className="text-2xl font-bold text-white">Cômodos</Text>
         <Text className="text-surface-400 mt-1">
-          {rooms
-            ? `${rooms.length} cômodos · segure para editar`
+          {roomsQuery.data
+            ? `${totalRooms}${roomsQuery.hasNextPage ? '+' : ''} cômodos · segure para editar`
             : ' '}
         </Text>
       </View>
@@ -188,54 +191,52 @@ export default function RoomsScreen() {
           </Text>
         </View>
       </Pressable>
+    </View>
+  );
 
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {isPending && (
-          <View className="flex-1 items-center justify-center py-16">
-            <ActivityIndicator color="#4ade80" size="large" />
-          </View>
+  const ListFooter = !roomsQuery.hasNextPage ? (
+    <View className="px-6 pb-8 pt-2">
+      <Pressable
+        className="w-full bg-surface-800/50 rounded-2xl p-4 border border-dashed border-surface-600 items-center justify-center active:bg-surface-800"
+        onPress={openNewRoomModal}
+      >
+        <Text className="text-3xl mb-2 text-surface-500">＋</Text>
+        <Text className="text-surface-400 font-semibold text-sm">Novo cômodo</Text>
+      </Pressable>
+    </View>
+  ) : (
+    <View className="h-8" />
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface-900">
+      <InfiniteList<RoomData>
+        query={roomsQuery}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={{ paddingHorizontal: 24, gap: 12 }}
+        contentContainerStyle={{ paddingBottom: 16 }}
+        ListHeaderComponent={ListHeader}
+        ListFooterExtra={ListFooter}
+        emptyTitle="Nenhum cômodo ainda"
+        emptySubtitle={'Toque em "Novo cômodo" para começar.'}
+        emptyIcon="🏠"
+        errorTitle="Erro ao carregar cômodos"
+        renderItem={({ item: room }) => (
+          <Pressable
+            className="flex-1 bg-surface-800 rounded-2xl p-4 mb-3 active:bg-surface-700"
+            onPress={() => router.push(`/(app)/room/${room.id}`)}
+            onLongPress={() => openEditRoomModal(room)}
+            delayLongPress={350}
+          >
+            <Text className="text-3xl mb-3">{room.icon ?? '📦'}</Text>
+            <Text className="text-white font-semibold text-sm">{room.name}</Text>
+            <Text className="text-surface-500 text-xs mt-1">
+              {room.productCount} {room.productCount === 1 ? 'item' : 'itens'}
+            </Text>
+          </Pressable>
         )}
-
-        {isError && (
-          <View className="flex-1 items-center justify-center py-16">
-            <Text className="text-surface-400 mb-4">Erro ao carregar cômodos</Text>
-            <Pressable onPress={() => refetch()}>
-              <Text className="text-primary-400 font-semibold">Tentar novamente</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {rooms && (
-          <View className="flex-row flex-wrap justify-between">
-            {rooms.map((room) => (
-              <Pressable
-                key={room.id}
-                className="w-[48%] bg-surface-800 rounded-2xl p-4 mb-4 active:bg-surface-700"
-                onPress={() => router.push(`/(app)/room/${room.id}`)}
-                onLongPress={() => openEditRoomModal(room)}
-                delayLongPress={350}
-              >
-                <Text className="text-3xl mb-3">{room.icon ?? '📦'}</Text>
-                <Text className="text-white font-semibold text-sm">{room.name}</Text>
-                <Text className="text-surface-500 text-xs mt-1">
-                  {room.productCount} {room.productCount === 1 ? 'item' : 'itens'}
-                </Text>
-              </Pressable>
-            ))}
-
-            {/* Add new room card */}
-            <Pressable
-              className="w-[48%] bg-surface-800/50 rounded-2xl p-4 mb-4 border border-dashed border-surface-600 items-center justify-center active:bg-surface-800"
-              onPress={openNewRoomModal}
-            >
-              <Text className="text-3xl mb-3 text-surface-500">＋</Text>
-              <Text className="text-surface-400 font-semibold text-sm">Novo cômodo</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <View className="h-8" />
-      </ScrollView>
+      />
 
       {/* New / Edit Room Modal */}
       <Modal
@@ -243,11 +244,9 @@ export default function RoomsScreen() {
         transparent
         animationType="slide"
         onRequestClose={closeRoomModal}
+        statusBarTranslucent
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-        >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <Pressable className="flex-1 bg-black/60" onPress={closeRoomModal} />
           <View className="bg-surface-900 rounded-t-3xl px-6 pt-6 pb-10 border-t border-surface-700">
             <Text className="text-xl font-bold text-white mb-6">

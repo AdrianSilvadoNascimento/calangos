@@ -80,10 +80,7 @@ export default function CreateCoupleScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"

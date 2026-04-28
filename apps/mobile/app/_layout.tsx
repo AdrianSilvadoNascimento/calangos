@@ -1,10 +1,13 @@
 import '../global.css';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Sentry from '@sentry/react-native';
 import { authClient } from '@enxoval/auth-client';
+import { clientEnv } from '@enxoval/env/client';
 import { useDeepLinks } from '../hooks/use-deep-links';
 
 const queryClient = new QueryClient({
@@ -59,7 +62,22 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
+  useEffect(() => {
+    try {
+      Sentry.init({
+        dsn: clientEnv.EXPO_PUBLIC_SENTRY_DSN,
+        environment: process.env.APP_ENV ?? 'development',
+        enableNative: true,
+        attachStacktrace: true,
+        tracesSampleRate: 0.1,
+        debug: false,
+      });
+    } catch (e) {
+      console.warn('Sentry init failed', e);
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
@@ -69,3 +87,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

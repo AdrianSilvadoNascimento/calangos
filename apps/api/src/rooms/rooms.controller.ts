@@ -7,14 +7,24 @@ import {
   Put,
   Param,
   Body,
+  Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { RoomsService } from './rooms.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { ZodValidationPipe } from '../common/pipes';
-import { createRoomSchema, updateRoomSchema } from '@enxoval/contracts';
-import type { CreateRoomInput, UpdateRoomInput } from '@enxoval/contracts';
+import {
+  createRoomSchema,
+  updateRoomSchema,
+  paginationQuerySchema,
+} from '@enxoval/contracts';
+import type {
+  CreateRoomInput,
+  UpdateRoomInput,
+  PaginationQuery,
+} from '@enxoval/contracts';
 
 @Controller('rooms')
 export class RoomsController {
@@ -24,10 +34,26 @@ export class RoomsController {
   ) {}
 
   @Get()
-  async findAll(@Session() session: UserSession) {
+  async findAll(
+    @Session() session: UserSession,
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    pagination: PaginationQuery,
+  ) {
     const profile = await this.profilesService.getByUserId(session.user.id);
-    if (!profile?.coupleId) return [];
-    return this.roomsService.findAllByCouple(profile.coupleId);
+    if (!profile?.coupleId) {
+      return { items: [], nextOffset: null };
+    }
+    return this.roomsService.findAllByCouple(profile.coupleId, pagination);
+  }
+
+  @Get(':id')
+  async findOne(
+    @Param('id') id: string,
+    @Session() session: UserSession,
+  ) {
+    const profile = await this.profilesService.getByUserId(session.user.id);
+    if (!profile?.coupleId) throw new ForbiddenException('No couple linked');
+    return this.roomsService.findOneByCouple(id, profile.coupleId);
   }
 
   @Post()

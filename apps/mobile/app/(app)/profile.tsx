@@ -160,10 +160,7 @@ export default function ProfileScreen() {
         animationType="slide"
         onRequestClose={closeEdit}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-        >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <Pressable className="flex-1 bg-black/60" onPress={closeEdit} />
           <View className="bg-surface-900 rounded-t-3xl px-6 pt-6 pb-10 border-t border-surface-700">
             <Text className="text-xl font-bold text-white mb-6">

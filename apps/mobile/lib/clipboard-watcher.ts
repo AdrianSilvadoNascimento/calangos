@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
-import type { QueryClient } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import type { Paginated } from '@enxoval/contracts';
 import { useClipboardSuggestion } from '../stores/clipboard-suggestion';
 import type { ProductData } from '../hooks/use-products';
 
@@ -14,9 +15,14 @@ export async function checkClipboardForUrl(queryClient: QueryClient): Promise<vo
     if (state.url === text) return;
     if (state.ignoredUrls.includes(text)) return;
 
-    const queries = queryClient.getQueriesData<ProductData[]>({ queryKey: ['products'] });
+    const queries = queryClient.getQueriesData<
+      InfiniteData<Paginated<ProductData>>
+    >({ queryKey: ['products'] });
     for (const [, data] of queries) {
-      if (data?.some((p) => p.url === text)) return;
+      const exists = data?.pages.some((page) =>
+        page.items.some((p) => p.url === text),
+      );
+      if (exists) return;
     }
 
     state.setUrl(text);

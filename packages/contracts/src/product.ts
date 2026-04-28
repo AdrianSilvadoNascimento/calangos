@@ -9,6 +9,7 @@ export const createProductSchema = z.object({
 });
 
 export const updateProductSchema = z.object({
+  url: z.string().url().optional(),
   title: z.string().optional(),
   roomId: z.string().uuid().optional(),
   status: z.enum(['wishlist', 'purchased', 'received', 'cancelled']).optional(),

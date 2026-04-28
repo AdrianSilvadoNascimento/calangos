@@ -17,7 +17,7 @@ module.exports = ({ config }) => {
     ...config,
     extra: {
       eas: {
-        projectId: process.env.EAS_PROJECT_ID,
+        projectId: 'dce12804-cdb3-4820-83ee-12a2c3b54c1d',
       },
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
       nodeEnv: APP_ENV,

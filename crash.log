@@ -1,0 +1,113 @@
+--------- beginning of crash
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: FATAL EXCEPTION: mqt_v_native
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: Process: com.enxoval.app, PID: 24009
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: com.facebook.react.common.JavascriptException: Error: Invalid client environment variables:
+04-27 17:40:17.535 24009 24034 E AndroidRuntime:   ✗ EXPO_PUBLIC_API_URL: Invalid input: expected string, received undefined
+04-27 17:40:17.535 24009 24034 E AndroidRuntime:   ✗ EXPO_PUBLIC_PUSHER_KEY: Invalid input: expected string, received undefined, stack:
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: createClientEnv@1:2174451
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: anonymous@1:2174320
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroRequire@1:123094
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: anonymous@1:1747126
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroRequire@1:123094
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: anonymous@1:1707743
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroRequire@1:123094
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: anonymous@1:1630772
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroRequire@1:123094
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: anonymous@1:1295554
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: guardedLoadModule@1:123540
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroRequire@1:123094
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: get@1:1294927
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: metroContext@1:1294902
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: loadRoute@1:1588319
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: getLayoutNode@1:1590462
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: _loop3@1:1588211
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: getDirectoryTree@1:1585989
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: getRoutes@1:1584974
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: getRoutes@1:1583970
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: useStore@1:1555532
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: ContextNavigator@1:1622427
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: renderWithHooks@1:312200
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: updateFunctionComponent@1:331020
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: beginWork@1:338904
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: performUnitOfWork@1:357583
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: workLoopSync@1:356591
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: renderRootSync@1:356423
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: performWorkOnRoot@1:353847
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: performWorkOnRootViaSchedulerTask@1:307658
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.jni.NativeRunnable.run(Native Method)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:1000)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:104)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:242)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:362)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+04-27 17:40:17.535 24009 24034 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:1564)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: FATAL EXCEPTION: mqt_v_native
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: Process: com.enxoval.app, PID: 17705
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: com.facebook.react.common.JavascriptException: Error: Invalid client environment variables:
+04-27 18:48:45.685 17705 17744 E AndroidRuntime:   ✗ EXPO_PUBLIC_API_URL: Invalid input: expected string, received undefined
+04-27 18:48:45.685 17705 17744 E AndroidRuntime:   ✗ EXPO_PUBLIC_PUSHER_KEY: Invalid input: expected string, received undefined, stack:
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: createClientEnv@1:2174451
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: anonymous@1:2174320
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroRequire@1:123094
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: anonymous@1:1747126
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroRequire@1:123094
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: anonymous@1:1707743
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroRequire@1:123094
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: anonymous@1:1630772
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: guardedLoadModule@1:123584
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroRequire@1:123094
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: anonymous@1:1295554
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadModuleImplementation@1:124061
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: guardedLoadModule@1:123540
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroRequire@1:123094
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: get@1:1294927
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: metroContext@1:1294902
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: loadRoute@1:1588319
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: getLayoutNode@1:1590462
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: _loop3@1:1588211
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: getDirectoryTree@1:1585989
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: getRoutes@1:1584974
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: getRoutes@1:1583970
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: useStore@1:1555532
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: ContextNavigator@1:1622427
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: renderWithHooks@1:312200
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: updateFunctionComponent@1:331020
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: beginWork@1:338904
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: performUnitOfWork@1:357583
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: workLoopSync@1:356591
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: renderRootSync@1:356423
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: performWorkOnRoot@1:353847
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: performWorkOnRootViaSchedulerTask@1:307658
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.jni.NativeRunnable.run(Native Method)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:1000)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:104)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:242)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:362)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+04-27 18:48:45.685 17705 17744 E AndroidRuntime: 	at java.lang.Thread.run(Thread.java:1564)
