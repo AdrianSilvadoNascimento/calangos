@@ -15,6 +15,8 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useRooms } from '../../hooks/use-rooms';
+import type { InfiniteData } from '@tanstack/react-query';
+import type { Paginated } from '@enxoval/contracts';
 import type { ProductData } from '../../hooks/use-products';
 import { useClipboardSuggestion } from '../../stores/clipboard-suggestion';
 
@@ -25,7 +27,8 @@ export default function AddProductScreen() {
   const ignoreUrl = useClipboardSuggestion((s) => s.ignoreUrl);
   const dismissSuggestion = useClipboardSuggestion((s) => s.dismiss);
 
-  const { data: rooms } = useRooms();
+  const roomsQuery = useRooms();
+  const rooms = roomsQuery.data?.pages.flatMap((p) => p.items) ?? [];
 
   const [url, setUrl] = useState(urlParam ?? '');
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -46,11 +49,13 @@ export default function AddProductScreen() {
       return;
     }
 
-    const cachedQueries = queryClient.getQueriesData<ProductData[]>({
-      queryKey: ['products'],
-    });
+    const cachedQueries = queryClient.getQueriesData<
+      InfiniteData<Paginated<ProductData>>
+    >({ queryKey: ['products'] });
     const alreadyExists = cachedQueries.some(([, data]) =>
-      data?.some((p) => p.url === trimmedUrl),
+      data?.pages.some((page) =>
+        page.items.some((p) => p.url === trimmedUrl),
+      ),
     );
     if (alreadyExists) {
       ignoreUrl(trimmedUrl);
@@ -101,10 +106,7 @@ export default function AddProductScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"

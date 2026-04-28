@@ -9,10 +9,16 @@ import { eq, and, ilike, sql, desc } from 'drizzle-orm';
 import { products, rooms, profiles } from '@enxoval/db/schema';
 import { DB_TOKEN } from '../database/database.module';
 import type { DB } from '../database/database.module';
-import type { CreateProductInput, UpdateProductInput } from '@enxoval/contracts';
+import type {
+  CreateProductInput,
+  UpdateProductInput,
+  Paginated,
+} from '@enxoval/contracts';
 import { extractDomain } from '@enxoval/utils';
 import { PusherService } from '../realtime/pusher.service';
 import { ScrapingService } from '../scraping/scraping.service';
+
+type Product = typeof products.$inferSelect;
 
 @Injectable()
 export class ProductsService {
@@ -22,23 +28,35 @@ export class ProductsService {
     private readonly scrapingService: ScrapingService,
   ) {}
 
-  async findByRoom(roomId: string) {
-    return this.db.query.products.findMany({
+  async findByRoom(
+    roomId: string,
+    { limit, offset }: { limit: number; offset: number },
+  ): Promise<Paginated<Product>> {
+    const items = await this.db.query.products.findMany({
       where: eq(products.roomId, roomId),
       orderBy: desc(products.createdAt),
+      limit,
+      offset,
     });
+
+    return {
+      items,
+      nextOffset: items.length < limit ? null : offset + limit,
+    };
   }
 
   async findAllByCouple(
     coupleId: string,
-    filters: { status?: string; search?: string },
-  ) {
+    filters: { status?: string; search?: string; limit: number; offset: number },
+  ): Promise<Paginated<Product>> {
     const coupleRooms = await this.db.query.rooms.findMany({
       where: eq(rooms.coupleId, coupleId),
     });
     const roomIds = coupleRooms.map((r) => r.id);
 
-    if (roomIds.length === 0) return [];
+    if (roomIds.length === 0) {
+      return { items: [], nextOffset: null };
+    }
 
     const conditions = [sql`${products.roomId} IN ${roomIds}`];
 
@@ -50,10 +68,17 @@ export class ProductsService {
       conditions.push(ilike(products.title, `%${filters.search}%`));
     }
 
-    return this.db.query.products.findMany({
+    const items = await this.db.query.products.findMany({
       where: and(...conditions),
       orderBy: desc(products.createdAt),
+      limit: filters.limit,
+      offset: filters.offset,
     });
+
+    return {
+      items,
+      nextOffset: items.length < filters.limit ? null : filters.offset + filters.limit,
+    };
   }
 
   async create(dto: CreateProductInput, userId: string, excludeSocketId?: string) {

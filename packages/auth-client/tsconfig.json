@@ -9,7 +9,6 @@
     "declaration": true,
     "declarationMap": false,
     "paths": {
-      "@enxoval/env/dist/client": ["../../packages/env/dist/client"],
       "@enxoval/env/client": ["../../packages/env/dist/client"]
     }
   },

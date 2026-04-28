@@ -1,16 +1,29 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { eq, inArray, sql, asc } from 'drizzle-orm';
+import { eq, inArray, sql, asc, and } from 'drizzle-orm';
 import { rooms, products, profiles } from '@enxoval/db/schema';
 import { DB_TOKEN } from '../database/database.module';
 import type { DB } from '../database/database.module';
-import type { CreateRoomInput, UpdateRoomInput } from '@enxoval/contracts';
+import type { CreateRoomInput, UpdateRoomInput, Paginated } from '@enxoval/contracts';
+
+type RoomWithCount = {
+  id: string;
+  name: string;
+  icon: string | null;
+  orderIndex: number;
+  coupleId: string;
+  createdAt: Date;
+  productCount: number;
+};
 
 @Injectable()
 export class RoomsService {
   constructor(@Inject(DB_TOKEN) private db: DB) {}
 
-  async findAllByCouple(coupleId: string) {
-    const result = await this.db
+  async findAllByCouple(
+    coupleId: string,
+    { limit, offset }: { limit: number; offset: number },
+  ): Promise<Paginated<RoomWithCount>> {
+    const items = await this.db
       .select({
         id: rooms.id,
         name: rooms.name,
@@ -24,9 +37,34 @@ export class RoomsService {
       .leftJoin(products, eq(products.roomId, rooms.id))
       .where(eq(rooms.coupleId, coupleId))
       .groupBy(rooms.id)
-      .orderBy(asc(rooms.orderIndex));
+      .orderBy(asc(rooms.orderIndex))
+      .limit(limit)
+      .offset(offset);
 
-    return result;
+    return {
+      items,
+      nextOffset: items.length < limit ? null : offset + limit,
+    };
+  }
+
+  async findOneByCouple(id: string, coupleId: string): Promise<RoomWithCount> {
+    const [room] = await this.db
+      .select({
+        id: rooms.id,
+        name: rooms.name,
+        icon: rooms.icon,
+        orderIndex: rooms.orderIndex,
+        coupleId: rooms.coupleId,
+        createdAt: rooms.createdAt,
+        productCount: sql<number>`count(${products.id})::int`,
+      })
+      .from(rooms)
+      .leftJoin(products, eq(products.roomId, rooms.id))
+      .where(and(eq(rooms.id, id), eq(rooms.coupleId, coupleId)))
+      .groupBy(rooms.id);
+
+    if (!room) throw new NotFoundException('Room not found');
+    return room;
   }
 
   async create(dto: CreateRoomInput, coupleId: string) {

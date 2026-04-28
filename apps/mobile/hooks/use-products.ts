@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import type { Paginated } from '@enxoval/contracts';
 import { api } from '../lib/api';
 
 export interface ProductData {
@@ -18,27 +19,39 @@ export interface ProductData {
   updatedAt: string;
 }
 
+const PAGE_SIZE = 20;
+
 export function useProducts(filters?: { status?: string; search?: string }) {
-  return useQuery<ProductData[]>({
+  return useInfiniteQuery<Paginated<ProductData>>({
     queryKey: ['products', filters?.status, filters?.search],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.status) params.set('status', filters.status);
-      if (filters?.search) params.set('search', filters.search);
-      const qs = params.toString();
-      const { data } = await api.get<ProductData[]>(`/products${qs ? `?${qs}` : ''}`);
-      return data ?? [];
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
+      const { data } = await api.get<Paginated<ProductData>>('/products', {
+        params: {
+          limit: PAGE_SIZE,
+          offset: pageParam,
+          ...(filters?.status ? { status: filters.status } : {}),
+          ...(filters?.search ? { search: filters.search } : {}),
+        },
+      });
+      return data;
     },
+    getNextPageParam: (last) => last.nextOffset,
   });
 }
 
 export function useRoomProducts(roomId: string | undefined) {
-  return useQuery<ProductData[]>({
+  return useInfiniteQuery<Paginated<ProductData>>({
     queryKey: ['products', 'room', roomId],
-    queryFn: async () => {
-      const { data } = await api.get<ProductData[]>(`/rooms/${roomId}/products`);
-      return data ?? [];
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
+      const { data } = await api.get<Paginated<ProductData>>(
+        `/rooms/${roomId}/products`,
+        { params: { limit: PAGE_SIZE, offset: pageParam } },
+      );
+      return data;
     },
+    getNextPageParam: (last) => last.nextOffset,
     enabled: !!roomId,
   });
 }

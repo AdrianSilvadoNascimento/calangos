@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { View, Text, Pressable, Linking, Image } from 'react-native';
 import type { ProductData } from '../hooks/use-products';
+import { ProductActions } from './product-actions';
 
 const STATUS_CONFIG: Record<
   ProductData['status'],
@@ -40,6 +42,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, showRoom, roomName, roomIcon }: ProductCardProps) {
   const status = STATUS_CONFIG[product.status] ?? STATUS_CONFIG.wishlist;
+  const [actionsVisible, setActionsVisible] = useState(false);
 
   const handleOpenLink = () => {
     if (product.url) Linking.openURL(product.url);
@@ -54,6 +57,8 @@ export function ProductCard({ product, showRoom, roomName, roomIcon }: ProductCa
   return (
     <Pressable
       onPress={handleOpenLink}
+      onLongPress={() => setActionsVisible(true)}
+      delayLongPress={350}
       className="bg-surface-800 rounded-2xl p-4 mb-3 active:bg-surface-700"
     >
       <View className="flex-row items-start justify-between mb-2">
@@ -111,6 +116,12 @@ export function ProductCard({ product, showRoom, roomName, roomIcon }: ProductCa
       <Text className="text-surface-600 text-xs mt-2" numberOfLines={1}>
         {product.url}
       </Text>
+
+      <ProductActions
+        product={product}
+        visible={actionsVisible}
+        onClose={() => setActionsVisible(false)}
+      />
     </Pressable>
   );
 }

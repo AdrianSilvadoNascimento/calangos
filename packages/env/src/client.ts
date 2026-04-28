@@ -11,28 +11,31 @@ const clientSchema = z.object({
   EXPO_PUBLIC_API_URL: z.string().min(1, 'EXPO_PUBLIC_API_URL is required'),
   EXPO_PUBLIC_PUSHER_KEY: z.string().min(1, 'EXPO_PUBLIC_PUSHER_KEY is required'),
   EXPO_PUBLIC_PUSHER_CLUSTER: z.string().default('sa1'),
+  EXPO_PUBLIC_SENTRY_DSN: z.string().min(1, 'EXPO_PUBLIC_SENTRY_DSN is required'),
 });
 
 export type ClientEnv = z.infer<typeof clientSchema>;
 
 function createClientEnv(): ClientEnv {
-  const result = clientSchema.safeParse(process.env);
+  // babel-preset-expo only inlines EXPO_PUBLIC_* when accessed as direct
+  // member expressions on process.env. Passing process.env as an object
+  // (e.g. safeParse(process.env)) defeats the static analysis and the values
+  // come back undefined in the React Native production bundle.
+  const result = clientSchema.safeParse({
+    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+    EXPO_PUBLIC_PUSHER_KEY: process.env.EXPO_PUBLIC_PUSHER_KEY,
+    EXPO_PUBLIC_PUSHER_CLUSTER: process.env.EXPO_PUBLIC_PUSHER_CLUSTER,
+    EXPO_PUBLIC_SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  });
 
   if (!result.success) {
     const formatted = result.error.issues
       .map((i) => `  ✗ ${i.path.join('.')}: ${i.message}`)
       .join('\n');
-
-    // In dev mode, warn loudly; in production builds this should have
-    // been caught by the CI pipeline.
-    console.error(`\n❌ Invalid client environment variables:\n${formatted}\n`);
-
-    // Return defaults so the app doesn't crash in every HMR cycle when
-    // a dev forgets to set a non-critical variable. The schema above
-    // still enforces the truly required ones.
+    throw new Error(`Invalid client environment variables:\n${formatted}`);
   }
 
-  return result.data as ClientEnv;
+  return result.data;
 }
 
 /**

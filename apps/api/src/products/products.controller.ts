@@ -14,8 +14,16 @@ import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { ProductsService } from './products.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { ZodValidationPipe } from '../common/pipes';
-import { createProductSchema, updateProductSchema } from '@enxoval/contracts';
-import type { CreateProductInput, UpdateProductInput } from '@enxoval/contracts';
+import {
+  createProductSchema,
+  updateProductSchema,
+  paginationQuerySchema,
+} from '@enxoval/contracts';
+import type {
+  CreateProductInput,
+  UpdateProductInput,
+  PaginationQuery,
+} from '@enxoval/contracts';
 
 @Controller()
 export class ProductsController {
@@ -25,19 +33,31 @@ export class ProductsController {
   ) {}
 
   @Get('rooms/:roomId/products')
-  findByRoom(@Param('roomId') roomId: string) {
-    return this.productsService.findByRoom(roomId);
+  findByRoom(
+    @Param('roomId') roomId: string,
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    pagination: PaginationQuery,
+  ) {
+    return this.productsService.findByRoom(roomId, pagination);
   }
 
   @Get('products')
   async findAll(
     @Session() session: UserSession,
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    pagination: PaginationQuery,
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
     const profile = await this.profilesService.getByUserId(session.user.id);
-    if (!profile?.coupleId) return [];
-    return this.productsService.findAllByCouple(profile.coupleId, { status, search });
+    if (!profile?.coupleId) {
+      return { items: [], nextOffset: null };
+    }
+    return this.productsService.findAllByCouple(profile.coupleId, {
+      status,
+      search,
+      ...pagination,
+    });
   }
 
   @Post('products')

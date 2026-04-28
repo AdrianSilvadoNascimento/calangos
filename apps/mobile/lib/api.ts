@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { authClient } from '@enxoval/auth-client';
-import { clientEnv } from '@enxoval/env/dist/client';
+import { clientEnv } from '@enxoval/env/client';
 
 const API_URL = clientEnv.EXPO_PUBLIC_API_URL;
 
