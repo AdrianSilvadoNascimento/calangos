@@ -63,7 +63,7 @@ jobs:
             --concurrency 80 \
             --timeout 300 \
             --cpu-boost \
-            --set-env-vars "^@^NODE_ENV=production@APP_SCHEME=enxoval@PUSHER_CLUSTER=sa1@BETTER_AUTH_URL=${{ secrets.PRD_BETTER_AUTH_URL }}@TRUSTED_ORIGINS=${{ secrets.PRD_TRUSTED_ORIGINS }}@DATABASE_URL=${{ secrets.PRD_DATABASE_URL }}@BETTER_AUTH_SECRET=${{ secrets.PRD_BETTER_AUTH_SECRET }}@PUSHER_APP_ID=${{ secrets.PRD_PUSHER_APP_ID }}@PUSHER_KEY=${{ secrets.PRD_PUSHER_KEY }}@PUSHER_SECRET=${{ secrets.PRD_PUSHER_SECRET }}"
+            --set-env-vars "^|^NODE_ENV=production|APP_SCHEME=enxoval|PUSHER_CLUSTER=sa1|BETTER_AUTH_URL=${{ secrets.PRD_BETTER_AUTH_URL }}|TRUSTED_ORIGINS=${{ secrets.PRD_TRUSTED_ORIGINS }}|DATABASE_URL=${{ secrets.PRD_DATABASE_URL }}|BETTER_AUTH_SECRET=${{ secrets.PRD_BETTER_AUTH_SECRET }}|PUSHER_APP_ID=${{ secrets.PRD_PUSHER_APP_ID }}|PUSHER_KEY=${{ secrets.PRD_PUSHER_KEY }}|PUSHER_SECRET=${{ secrets.PRD_PUSHER_SECRET }}"
 
       - name: Smoke test (health endpoint)
         run: |
