@@ -4,7 +4,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,8 @@ import { useState, useEffect } from 'react';
 import * as Linking from 'expo-linking';
 import { authClient } from '@enxoval/auth-client';
 import { useInviteInfo, useAcceptInvite } from '../../hooks/use-invite';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 /**
  * Extracts a token from various input formats:
@@ -43,6 +44,7 @@ function extractToken(input: string): string | null {
 
 export default function AcceptInviteScreen() {
   const router = useRouter();
+  const dialog = useDialog();
   const { token: deepLinkToken } = useLocalSearchParams<{ token?: string }>();
 
   // Token state: can come from deep link or manual input
@@ -83,11 +85,11 @@ export default function AcceptInviteScreen() {
   const handleSubmit = async () => {
     if (!resolvedToken) return;
     if (!email.trim() || !password || !name.trim()) {
-      Alert.alert('Preencha tudo', 'Email, senha e nome são obrigatórios.');
+      await dialog.alert({ title: 'Preencha tudo', message: 'Email, senha e nome são obrigatórios.' });
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Senha curta', 'A senha precisa ter pelo menos 8 caracteres.');
+      await dialog.alert({ title: 'Senha curta', message: 'A senha precisa ter pelo menos 8 caracteres.' });
       return;
     }
 
@@ -106,21 +108,22 @@ export default function AcceptInviteScreen() {
       });
 
       if (signIn.error) {
-        Alert.alert(
-          'Conta criada',
-          'Conta criada! Faça login para continuar.',
-          [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-in') }],
-        );
+        await dialog.alert({
+          title: 'Conta criada',
+          message: 'Conta criada! Faça login para continuar.',
+        });
+        router.replace('/(auth)/sign-in');
         return;
       }
 
       // Navigation is handled automatically by Stack.Protected guard
       // when the auth session state changes — no manual navigate needed.
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? err?.message ?? 'Não foi possível aceitar o convite.',
-      );
+      reportError(err, { action: 'accept_invite' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? err?.message ?? 'Não foi possível aceitar o convite.',
+      });
     } finally {
       setSubmitting(false);
     }

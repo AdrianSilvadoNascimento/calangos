@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -13,6 +12,8 @@ import { Pencil, Trash2 } from 'lucide-react-native';
 import { useUpdateProduct } from '../hooks/use-update-product';
 import { useDeleteProduct } from '../hooks/use-delete-product';
 import type { ProductData } from '../hooks/use-products';
+import { useDialog } from './ui/dialog';
+import { reportError } from '../lib/report-error';
 
 type Mode = 'menu' | 'edit' | 'delete-confirm';
 
@@ -26,6 +27,7 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
   const [mode, setMode] = useState<Mode>('menu');
   const [title, setTitle] = useState(product.title ?? '');
   const [url, setUrl] = useState(product.url);
+  const dialog = useDialog();
 
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -48,11 +50,11 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
     const trimmedUrl = url.trim();
     const trimmedTitle = title.trim();
     if (!trimmedUrl) {
-      Alert.alert('Link obrigatório', 'O link do produto não pode ficar vazio.');
+      await dialog.alert({ title: 'Link obrigatório', message: 'O link do produto não pode ficar vazio.' });
       return;
     }
     if (!/^https?:\/\//i.test(trimmedUrl)) {
-      Alert.alert('Link inválido', 'O link precisa começar com http:// ou https://');
+      await dialog.alert({ title: 'Link inválido', message: 'O link precisa começar com http:// ou https://' });
       return;
     }
 
@@ -69,10 +71,11 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
       await updateProduct.mutateAsync({ id: product.id, dto });
       onClose();
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? 'Não foi possível salvar as alterações.',
-      );
+      reportError(err, { action: 'product.update' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Não foi possível salvar as alterações.',
+      });
     }
   };
 
@@ -81,10 +84,11 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
       await deleteProduct.mutateAsync(product.id);
       onClose();
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? 'Não foi possível excluir o item.',
-      );
+      reportError(err, { action: 'product.delete' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Não foi possível excluir o item.',
+      });
     }
   };
 

@@ -4,7 +4,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,9 +18,12 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type { Paginated } from '@enxoval/contracts';
 import type { ProductData } from '../../hooks/use-products';
 import { useClipboardSuggestion } from '../../stores/clipboard-suggestion';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 export default function AddProductScreen() {
   const router = useRouter();
+  const dialog = useDialog();
   const { url: urlParam } = useLocalSearchParams<{ url?: string }>();
   const queryClient = useQueryClient();
   const ignoreUrl = useClipboardSuggestion((s) => s.ignoreUrl);
@@ -41,11 +43,11 @@ export default function AddProductScreen() {
   const handleSubmit = async () => {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
-      Alert.alert('URL vazia', 'Cole um link de produto.');
+      await dialog.alert({ title: 'URL vazia', message: 'Cole um link de produto.' });
       return;
     }
     if (!selectedRoomId) {
-      Alert.alert('Escolha um cômodo', 'Selecione onde o item vai ficar.');
+      await dialog.alert({ title: 'Escolha um cômodo', message: 'Selecione onde o item vai ficar.' });
       return;
     }
 
@@ -60,11 +62,11 @@ export default function AddProductScreen() {
     if (alreadyExists) {
       ignoreUrl(trimmedUrl);
       dismissSuggestion();
-      Alert.alert(
-        'Link já cadastrado',
-        'Esse link já existe na sua lista — não vamos duplicar.',
-        [{ text: 'OK', onPress: () => router.back() }],
-      );
+      await dialog.alert({
+        title: 'Link já cadastrado',
+        message: 'Esse link já existe na sua lista — não vamos duplicar.',
+      });
+      router.back();
       return;
     }
 
@@ -87,18 +89,18 @@ export default function AddProductScreen() {
         ignoreUrl(trimmedUrl);
         dismissSuggestion();
         queryClient.invalidateQueries({ queryKey: ['products'] });
-        Alert.alert(
-          'Link já cadastrado',
-          err?.response?.data?.message ??
-            'Esse link já existe na lista do casal.',
-          [{ text: 'OK', onPress: () => router.back() }],
-        );
+        await dialog.alert({
+          title: 'Link já cadastrado',
+          message: err?.response?.data?.message ?? 'Esse link já existe na lista do casal.',
+        });
+        router.back();
         return;
       }
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? 'Não foi possível adicionar o produto.',
-      );
+      reportError(err, { action: 'product.add' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Não foi possível adicionar o produto.',
+      });
     } finally {
       setSubmitting(false);
     }

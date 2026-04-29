@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as Sentry from '@sentry/react-native';
 import { authClient } from '@enxoval/auth-client';
 import { clientEnv } from '@enxoval/env/client';
 
@@ -15,6 +16,13 @@ api.interceptors.request.use((config) => {
   if (__DEV__) {
     console.log('[api] →', (config.method ?? 'get').toUpperCase(), config.url, cookie ? '(auth)' : '(no-auth)');
   }
+  Sentry.addBreadcrumb({
+    category: 'http',
+    type: 'http',
+    level: 'info',
+    message: `${(config.method ?? 'get').toUpperCase()} ${config.url}`,
+    data: { url: config.url, method: config.method, hasAuth: !!cookie },
+  });
   return config;
 });
 
@@ -23,6 +31,13 @@ api.interceptors.response.use(
     if (__DEV__) {
       console.log('[api] ←', response.status, response.config.url);
     }
+    Sentry.addBreadcrumb({
+      category: 'http',
+      type: 'http',
+      level: 'info',
+      message: `${response.status} ${response.config.url}`,
+      data: { url: response.config.url, status: response.status },
+    });
     return response;
   },
   (error) => {
@@ -30,6 +45,13 @@ api.interceptors.response.use(
     const url = error?.config?.url;
     const message = error?.response?.data?.message ?? error?.message;
     console.warn('[api] ✗', status ?? 'network', url, '—', message);
+    Sentry.addBreadcrumb({
+      category: 'http',
+      type: 'http',
+      level: 'error',
+      message: `${status ?? 'network'} ${url} — ${message}`,
+      data: { url, status: status ?? 'network', message },
+    });
     return Promise.reject(error);
   },
 );

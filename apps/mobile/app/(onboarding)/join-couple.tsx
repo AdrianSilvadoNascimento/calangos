@@ -1,18 +1,21 @@
-import { View, Text, TextInput, Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { api } from '../../lib/api';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 export default function JoinCoupleScreen() {
   const router = useRouter();
+  const dialog = useDialog();
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async () => {
     const code = inviteCode.trim().toUpperCase();
     if (code.length !== 8) {
-      Alert.alert('Código inválido', 'O código deve ter 8 caracteres.');
+      await dialog.alert({ title: 'Código inválido', message: 'O código deve ter 8 caracteres.' });
       return;
     }
     setLoading(true);
@@ -20,7 +23,11 @@ export default function JoinCoupleScreen() {
       await api.post('/couples/join', { inviteCode: code });
       router.replace('/(app)');
     } catch (err: any) {
-      Alert.alert('Erro', err?.response?.data?.message ?? 'Código inválido ou expirado.');
+      reportError(err, { action: 'couple.join' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Código inválido ou expirado.',
+      });
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,10 +16,13 @@ import { api } from '../../lib/api';
 import { InviteLinkCard } from '../../components/invite-link-card';
 import { useCreateInvite, type InviteData } from '../../hooks/use-invite';
 import type { CoupleData } from '../../hooks/use-my-couple';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 export default function CreateCoupleScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const [trousseauName, setTrousseauName] = useState('');
   const [partnerEmail, setPartnerEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,10 +46,11 @@ export default function CreateCoupleScreen() {
         router.replace('/(app)');
       }
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? 'Não foi possível criar o enxoval.',
-      );
+      reportError(err, { action: 'couple.create' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Não foi possível criar o enxoval.',
+      });
     } finally {
       setLoading(false);
     }

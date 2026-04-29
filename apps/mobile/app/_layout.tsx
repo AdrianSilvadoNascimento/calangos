@@ -6,9 +6,11 @@ import { ActivityIndicator, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 import { authClient } from '@enxoval/auth-client';
 import { clientEnv } from '@enxoval/env/client';
 import { useDeepLinks } from '../hooks/use-deep-links';
+import { DialogProvider } from '../components/ui/dialog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,9 +67,11 @@ function RootStack() {
 function RootLayout() {
   useEffect(() => {
     try {
+      const environment =
+        (Constants.expoConfig?.extra?.nodeEnv as string | undefined) ?? 'development';
       Sentry.init({
         dsn: clientEnv.EXPO_PUBLIC_SENTRY_DSN,
-        environment: process.env.APP_ENV ?? 'development',
+        environment,
         enableNative: true,
         attachStacktrace: true,
         tracesSampleRate: 0.1,
@@ -81,8 +85,10 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <RootStack />
+        <DialogProvider>
+          <StatusBar style="light" />
+          <RootStack />
+        </DialogProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

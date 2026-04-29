@@ -1,11 +1,16 @@
-import { View, Text, TextInput, Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { authClient } from '@enxoval/auth-client';
+import { clientEnv } from '@enxoval/env/client';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const dialog = useDialog();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,11 +19,39 @@ export default function SignUpScreen() {
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password) return;
     setLoading(true);
-    const { error } = await authClient.signUp.email({ name: name.trim(), email: email.trim(), password });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erro ao criar conta', error.message ?? 'Tente novamente.');
-      return;
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'sign_up.attempt',
+      level: 'info',
+      data: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+    });
+    try {
+      const { error } = await authClient.signUp.email({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        reportError(error, {
+          action: 'sign_up',
+          extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+        });
+        await dialog.alert({
+          title: 'Erro ao criar conta',
+          message: error.message ?? 'Tente novamente.',
+        });
+      }
+    } catch (err) {
+      reportError(err, {
+        action: 'sign_up.thrown',
+        extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+      });
+      await dialog.alert({
+        title: 'Erro ao criar conta',
+        message: 'Falha de conexão. Verifique sua internet e tente novamente.',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

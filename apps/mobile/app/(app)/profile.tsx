@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Pressable,
-  Alert,
   TextInput,
   ActivityIndicator,
   Modal,
@@ -19,12 +18,15 @@ import { useCoupleMembers } from '../../hooks/use-couple-members';
 import { useUpdateProfile } from '../../hooks/use-update-profile';
 import { useUpdateCouple } from '../../hooks/use-update-couple';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 type EditMode = 'name' | 'couple' | null;
 
 export default function ProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const { data: session, refetch: refetchSession } = authClient.useSession();
   const { data: couple, refetch: refetchCouple } = useMyCouple();
   const { data: members } = useCoupleMembers();
@@ -44,7 +46,7 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     const value = draft.trim();
     if (!value) {
-      Alert.alert('Campo obrigatório', 'Digite um nome.');
+      await dialog.alert({ title: 'Campo obrigatório', message: 'Digite um nome.' });
       return;
     }
     try {
@@ -57,26 +59,25 @@ export default function ProfileScreen() {
       }
       closeEdit();
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ?? err?.message ?? 'Não foi possível salvar.',
-      );
+      reportError(err, { action: 'profile.save', extra: { editMode } });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? err?.message ?? 'Não foi possível salvar.',
+      });
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert('Sair', 'Tem certeza que deseja sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          await authClient.signOut();
-          queryClient.clear();
-          router.replace('/(auth)/sign-in');
-        },
-      },
-    ]);
+    const ok = await dialog.confirm({
+      title: 'Sair',
+      message: 'Tem certeza que deseja sair?',
+      confirmText: 'Sair',
+      destructive: true,
+    });
+    if (!ok) return;
+    await authClient.signOut();
+    queryClient.clear();
+    router.replace('/(auth)/sign-in');
   };
 
   const needsInvite = !members || members.count < 2;

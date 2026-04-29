@@ -1,11 +1,16 @@
-import { View, Text, TextInput, Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { authClient } from '@enxoval/auth-client';
+import { clientEnv } from '@enxoval/env/client';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const dialog = useDialog();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,12 +18,40 @@ export default function SignInScreen() {
   const handleSignIn = async () => {
     if (!email.trim() || !password) return;
     setLoading(true);
-    const { error } = await authClient.signIn.email({ email: email.trim(), password });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erro ao entrar', error.message ?? 'Verifique suas credenciais.');
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: 'sign_in.attempt',
+      level: 'info',
+      data: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        reportError(error, {
+          action: 'sign_in',
+          extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+        });
+        await dialog.alert({
+          title: 'Erro ao entrar',
+          message: error.message ?? 'Verifique suas credenciais.',
+        });
+      }
+      // AuthGate in _layout.tsx handles redirect to /(app) after session is set
+    } catch (err) {
+      reportError(err, {
+        action: 'sign_in.thrown',
+        extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
+      });
+      await dialog.alert({
+        title: 'Erro ao entrar',
+        message: 'Falha de conexão. Verifique sua internet e tente novamente.',
+      });
+    } finally {
+      setLoading(false);
     }
-    // AuthGate in _layout.tsx handles redirect to /(app) after session is set
   };
 
   return (

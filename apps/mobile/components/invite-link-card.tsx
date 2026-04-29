@@ -1,6 +1,7 @@
-import { View, Text, Pressable, Share, Alert } from 'react-native';
+import { View, Text, Pressable, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
+import { useDialog } from './ui/dialog';
 
 interface InviteLinkCardProps {
   link: string;
@@ -9,6 +10,7 @@ interface InviteLinkCardProps {
 
 export function InviteLinkCard({ link, email }: InviteLinkCardProps) {
   const [copied, setCopied] = useState(false);
+  const dialog = useDialog();
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(link);
@@ -24,7 +26,7 @@ export function InviteLinkCard({ link, email }: InviteLinkCardProps) {
           : `Abra este link para entrar no nosso enxoval: ${link}`,
       });
     } catch (err: any) {
-      Alert.alert('Erro', err?.message ?? 'Não foi possível compartilhar.');
+      await dialog.alert({ title: 'Erro', message: err?.message ?? 'Não foi possível compartilhar.' });
     }
   };
 

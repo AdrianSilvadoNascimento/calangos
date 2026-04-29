@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
   KeyboardAvoidingView,
@@ -22,6 +21,8 @@ import { useCoupleMembers } from '../../hooks/use-couple-members';
 import { useClipboardSuggestion } from '../../stores/clipboard-suggestion';
 import { checkClipboardForUrl } from '../../lib/clipboard-watcher';
 import { InfiniteList } from '../../components/infinite-list';
+import { useDialog } from '../../components/ui/dialog';
+import { reportError } from '../../lib/report-error';
 
 const HTTP_URL = /^(https?:\/\/)/i;
 
@@ -33,6 +34,7 @@ const EMOJI_OPTIONS = [
 export default function RoomsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const roomsQuery = useRooms();
   const { data: members } = useCoupleMembers();
   const createRoom = useCreateRoom();
@@ -56,15 +58,16 @@ export default function RoomsScreen() {
     try {
       const text = (await Clipboard.getStringAsync())?.trim();
       if (!text || !HTTP_URL.test(text)) {
-        Alert.alert(
-          'Clipboard vazio',
-          'Copie um link de produto (https://...) antes de tocar em Colar.',
-        );
+        await dialog.alert({
+          title: 'Clipboard vazio',
+          message: 'Copie um link de produto (https://...) antes de tocar em Colar.',
+        });
         return;
       }
       router.push(`/(app)/add-product?url=${encodeURIComponent(text)}`);
     } catch (err: any) {
-      Alert.alert('Erro', err?.message ?? 'Não foi possível ler o clipboard.');
+      reportError(err, { action: 'clipboard.read' });
+      await dialog.alert({ title: 'Erro', message: err?.message ?? 'Não foi possível ler o clipboard.' });
     }
   };
 
@@ -76,7 +79,7 @@ export default function RoomsScreen() {
   const handleSaveRoom = async () => {
     const name = newRoomName.trim();
     if (!name) {
-      Alert.alert('Nome obrigatório', 'Digite o nome do cômodo.');
+      await dialog.alert({ title: 'Nome obrigatório', message: 'Digite o nome do cômodo.' });
       return;
     }
     try {
@@ -91,13 +94,17 @@ export default function RoomsScreen() {
       }
       closeRoomModal();
     } catch (err: any) {
-      Alert.alert(
-        'Erro',
-        err?.response?.data?.message ??
+      reportError(err, {
+        action: editingRoom ? 'room.update' : 'room.create',
+      });
+      await dialog.alert({
+        title: 'Erro',
+        message:
+          err?.response?.data?.message ??
           (editingRoom
             ? 'Não foi possível atualizar o cômodo.'
             : 'Não foi possível criar o cômodo.'),
-      );
+      });
     }
   };
 
