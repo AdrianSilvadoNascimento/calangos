@@ -26,8 +26,14 @@
       "intentFilters": [
         {
           "action": "SEND",
-          "category": ["DEFAULT"],
-          "data": [{ "mimeType": "text/plain" }]
+          "category": [
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "mimeType": "text/plain"
+            }
+          ]
         }
       ]
     },
@@ -49,6 +55,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dce12804-cdb3-4820-83ee-12a2c3b54c1d"
     }
   }
 }
