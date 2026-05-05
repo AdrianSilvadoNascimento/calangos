@@ -11,6 +11,7 @@ import { authClient } from '@enxoval/auth-client';
 import { clientEnv } from '@enxoval/env/client';
 import { useDeepLinks } from '../hooks/use-deep-links';
 import { DialogProvider } from '../components/ui/dialog';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,16 +24,17 @@ const queryClient = new QueryClient({
 
 function SplashScreen() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#0c1a0d',
-      }}
-    >
-      <ActivityIndicator color="#4ade80" size="large" />
-    </View>
+    <LinearGradient colors={['#22C55E', '#14532D']} style={{ flex: 1 }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <ActivityIndicator color="#4ade80" size="large" />
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -48,7 +50,7 @@ function RootStack() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0c1a0d' },
+        contentStyle: { backgroundColor: '#14532D' },
         animation: 'slide_from_right',
       }}
     >

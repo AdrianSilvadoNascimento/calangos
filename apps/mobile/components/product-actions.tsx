@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Pencil, Trash2 } from 'lucide-react-native';
+import { Pencil, Trash2, ShoppingCart, PackageCheck, XCircle, Star } from 'lucide-react-native';
 import { useUpdateProduct } from '../hooks/use-update-product';
 import { useDeleteProduct } from '../hooks/use-delete-product';
 import type { ProductData } from '../hooks/use-products';
@@ -27,6 +27,7 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
   const [mode, setMode] = useState<Mode>('menu');
   const [title, setTitle] = useState(product.title ?? '');
   const [url, setUrl] = useState(product.url);
+  const [changingStatus, setChangingStatus] = useState(false);
   const dialog = useDialog();
 
   const updateProduct = useUpdateProduct();
@@ -38,12 +39,30 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
       setMode('menu');
       setTitle(product.title ?? '');
       setUrl(product.url);
+      setChangingStatus(false);
     }
   }, [visible, product.id, product.title, product.url]);
 
   const handleClose = () => {
-    if (updateProduct.isPending || deleteProduct.isPending) return;
+    if (updateProduct.isPending || deleteProduct.isPending || changingStatus) return;
     onClose();
+  };
+
+  const handleStatusChange = async (newStatus: ProductData['status']) => {
+    if (newStatus === product.status) return;
+    setChangingStatus(true);
+    try {
+      await updateProduct.mutateAsync({ id: product.id, dto: { status: newStatus } });
+      onClose();
+    } catch (err: any) {
+      reportError(err, { action: 'product.changeStatus' });
+      await dialog.alert({
+        title: 'Erro',
+        message: err?.response?.data?.message ?? 'Não foi possível alterar o status.',
+      });
+    } finally {
+      setChangingStatus(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -115,6 +134,8 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
                 product={product}
                 onEdit={() => setMode('edit')}
                 onDelete={() => setMode('delete-confirm')}
+                onStatusChange={handleStatusChange}
+                changingStatus={changingStatus}
                 onCancel={handleClose}
               />
             )}
@@ -146,19 +167,38 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
   );
 }
 
+// ── Status options ───────────────────────────────────────────
+const STATUS_OPTIONS: {
+  key: ProductData['status'];
+  label: string;
+  icon: typeof ShoppingCart;
+  color: string;
+}[] = [
+  { key: 'wishlist',   label: 'Desejado',  icon: Star,         color: '#fbbf24' },
+  { key: 'purchased',  label: 'Comprado',  icon: ShoppingCart,  color: '#60a5fa' },
+  { key: 'received',   label: 'Recebido',  icon: PackageCheck,  color: '#34d399' },
+  { key: 'cancelled',  label: 'Cancelado', icon: XCircle,       color: '#f87171' },
+];
+
 // ── Menu (action sheet) ──────────────────────────────────────
 function MenuPanel({
   product,
   onEdit,
   onDelete,
+  onStatusChange,
+  changingStatus,
   onCancel,
 }: {
   product: ProductData;
   onEdit: () => void;
   onDelete: () => void;
+  onStatusChange: (status: ProductData['status']) => void;
+  changingStatus: boolean;
   onCancel: () => void;
 }) {
   const label = product.title || product.storeName || 'Produto sem título';
+  const availableStatuses = STATUS_OPTIONS.filter((s) => s.key !== product.status);
+
   return (
     <View>
       <View className="px-6 pt-6 pb-4 border-b border-surface-800">
@@ -170,9 +210,34 @@ function MenuPanel({
         </Text>
       </View>
 
+      {/* ── Status change options ── */}
+      {availableStatuses.map((option) => {
+        const Icon = option.icon;
+        return (
+          <Pressable
+            key={option.key}
+            className="px-6 py-4 flex-row items-center active:bg-surface-800"
+            onPress={() => onStatusChange(option.key)}
+            disabled={changingStatus}
+          >
+            {changingStatus ? (
+              <ActivityIndicator size={18} color={option.color} />
+            ) : (
+              <Icon size={18} color={option.color} />
+            )}
+            <Text className="text-white font-semibold text-base ml-3">
+              Marcar como {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+
+      <View className="h-px bg-surface-800 mx-6" />
+
       <Pressable
         className="px-6 py-4 flex-row items-center active:bg-surface-800"
         onPress={onEdit}
+        disabled={changingStatus}
       >
         <Pencil size={18} color="#4ade80" />
         <Text className="text-white font-semibold text-base ml-3">Editar</Text>
@@ -183,6 +248,7 @@ function MenuPanel({
       <Pressable
         className="px-6 py-4 flex-row items-center active:bg-surface-800"
         onPress={onDelete}
+        disabled={changingStatus}
       >
         <Trash2 size={18} color="#f87171" />
         <Text className="text-red-400 font-semibold text-base ml-3">Excluir</Text>
@@ -193,6 +259,7 @@ function MenuPanel({
       <Pressable
         className="px-6 py-4 items-center active:bg-surface-800"
         onPress={onCancel}
+        disabled={changingStatus}
       >
         <Text className="text-surface-400 font-semibold text-base">Cancelar</Text>
       </Pressable>

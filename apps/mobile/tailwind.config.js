@@ -22,7 +22,7 @@ module.exports = {
           900: '#14532d',
         },
         surface: {
-          50: '#e8f5e9',
+          50: '#F6F7F2',
           100: '#c8e6c9',
           200: '#a5d6a7',
           300: '#81c784',
@@ -38,6 +38,7 @@ module.exports = {
           amber: '#fbbf24',
           teal: '#2dd4bf',
           rose: '#f43f5e',
+          coral: '#FB7185',
         },
       },
       fontFamily: {

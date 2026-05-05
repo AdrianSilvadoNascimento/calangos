@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +17,10 @@ import { authClient } from '@enxoval/auth-client';
 import { useInviteInfo, useAcceptInvite } from '../../hooks/use-invite';
 import { useDialog } from '../../components/ui/dialog';
 import { reportError } from '../../lib/report-error';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react-native';
+
+const togetherIcon = require('@/assets/calangos-juntos.png');
 
 /**
  * Extracts a token from various input formats:
@@ -57,6 +62,7 @@ export default function AcceptInviteScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -132,59 +138,66 @@ export default function AcceptInviteScreen() {
   // ── State: Waiting for manual link input ──────────────────
   if (!resolvedToken) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900">
-        <KeyboardAvoidingView behavior="padding" className="flex-1">
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-          >
-            <View className="px-8 py-8">
-              <Text className="text-3xl font-bold text-white mb-2">
-                Entrar com convite
-              </Text>
-              <Text className="text-surface-400 mb-8">
-                Cole abaixo o link de convite que seu parceiro(a) enviou.
-              </Text>
-
-              <View className="mb-4">
-                <Text className="text-surface-300 text-sm mb-1.5 ml-1">
-                  Link de convite
-                </Text>
-                <TextInput
-                  className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
-                  placeholder="enxoval://invite?token=..."
-                  placeholderTextColor="#4a7055"
-                  value={linkInput}
-                  onChangeText={(t) => {
-                    setLinkInput(t);
-                    setParseError('');
-                  }}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  multiline
+      <LinearGradient colors={['#22C55E', '#14532D']} className="flex-1">
+        <SafeAreaView className="flex-1">
+          <KeyboardAvoidingView behavior="padding" className="flex-1">
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+            >
+              <View className="px-8 py-8">
+                <Image
+                  source={togetherIcon}
+                  style={{ width: 250, height: 250, objectFit: 'contain', alignSelf: 'center' }}
                 />
-                {parseError ? (
-                  <Text className="text-red-400 text-xs mt-1.5 ml-1">{parseError}</Text>
-                ) : null}
-              </View>
-
-              <Pressable
-                className="w-full bg-primary-600 rounded-2xl py-4 items-center mb-4 active:bg-primary-700"
-                onPress={handleParseLink}
-              >
-                <Text className="text-white font-semibold text-base">Continuar</Text>
-              </Pressable>
-
-              <Pressable onPress={() => router.back()}>
-                <Text className="text-surface-400 text-center">
-                  ← Voltar
+                <Text className="text-3xl font-bold text-white/90 mb-2">
+                  Entrar com convite
                 </Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+                <Text className="text-white/70 mb-8">
+                  Cole abaixo o link de convite que seu parceiro(a) enviou.
+                </Text>
+
+                <View className="mb-4">
+                  <Text className="text-white/80 text-sm mb-1.5 ml-1">
+                    Link de convite
+                  </Text>
+                  <TextInput
+                    className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
+                    placeholder="enxoval://invite?token=..."
+                    placeholderTextColor="#4a7055"
+                    value={linkInput}
+                    onChangeText={(t) => {
+                      setLinkInput(t);
+                      setParseError('');
+                    }}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    multiline
+                  />
+                  {parseError ? (
+                    <Text className="text-red-400 text-xs mt-1.5 ml-1">{parseError}</Text>
+                  ) : null}
+                </View>
+
+                <Pressable
+                  className="w-full bg-primary-600 rounded-2xl py-4 items-center mb-4 active:bg-primary-700"
+                  onPress={handleParseLink}
+                >
+                  <Text className="text-white font-semibold text-base">Continuar</Text>
+                </Pressable>
+
+                <Pressable onPress={() => router.back()}>
+                  <View className="flex-row items-center justify-center gap-2">
+                    <ArrowLeftIcon size={16} color="#4ade80" />
+                    <Text className="text-white/80 text-center font-semibold">Voltar</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView >
+      </LinearGradient >
     );
   }
 
@@ -286,14 +299,27 @@ export default function AcceptInviteScreen() {
 
             <View className="mb-8">
               <Text className="text-surface-300 text-sm mb-1.5 ml-1">Senha</Text>
-              <TextInput
-                className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
-                placeholder="Mínimo 8 caracteres"
-                placeholderTextColor="#4a7055"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+              <View className="relative justify-center">
+                <TextInput
+                  className="bg-surface-800 text-white rounded-xl pl-4 pr-12 py-3.5 text-base"
+                  placeholder="Mínimo 8 caracteres"
+                  placeholderTextColor="#4a7055"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  className="absolute right-4"
+                  hitSlop={12}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon size={20} color="#4a7055" />
+                  ) : (
+                    <EyeIcon size={20} color="#4a7055" />
+                  )}
+                </Pressable>
+              </View>
             </View>
 
             <Pressable
