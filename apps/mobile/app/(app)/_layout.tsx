@@ -1,7 +1,5 @@
 import { ActivityIndicator, View } from 'react-native';
-import { Redirect, Tabs } from 'expo-router';
-import { Text } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Redirect, Stack } from 'expo-router';
 import { useMyCouple } from '../../hooks/use-my-couple';
 import { useRealtimeSync } from '../../hooks/use-realtime-sync';
 import { ClipboardBanner } from '../../components/clipboard-banner';
@@ -12,8 +10,8 @@ function CoupleGate({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface-900">
-        <ActivityIndicator color="#4ade80" size="large" />
+      <View className="flex-1 items-center justify-center bg-bg-1">
+        <ActivityIndicator color="#34B26C" size="large" />
       </View>
     );
   }
@@ -24,54 +22,22 @@ function CoupleGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
     <CoupleGate>
-      <Tabs
+      <Stack
         screenOptions={{
           headerShown: false,
-          tabBarStyle: {
-            backgroundColor: '#0a180b',
-            borderTopColor: '#1f3825',
-            borderTopWidth: 1,
-            height: 60 + insets.bottom,
-            paddingBottom: 8 + insets.bottom,
-            paddingTop: 8,
-          },
-          tabBarActiveTintColor: '#4ade80',
-          tabBarInactiveTintColor: '#5c8a65',
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
-          },
+          contentStyle: { backgroundColor: '#0C1B14' },
+          animation: 'slide_from_right',
         }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Cômodos',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🏠</Text>,
-          }}
-        />
-        <Tabs.Screen
-          name="products"
-          options={{
-            title: 'Todos',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📦</Text>,
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Perfil',
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text>,
-          }}
-        />
-        <Tabs.Screen name="add-product" options={{ href: null }} />
-        <Tabs.Screen name="invite" options={{ href: null }} />
-        <Tabs.Screen name="room/[id]" options={{ href: null }} />
-      </Tabs>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="add-product" />
+        <Stack.Screen name="invite" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="products" />
+        <Stack.Screen name="room/[id]" />
+      </Stack>
       <ClipboardBanner />
     </CoupleGate>
   );

@@ -13,6 +13,9 @@ import { ProductsModule } from './products/products.module';
 import { ScrapingModule } from './scraping/scraping.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ActivityModule } from './activity/activity.module';
+import { MilestonesModule } from './milestones/milestones.module';
+import { PreferencesModule } from './preferences/preferences.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     ScrapingModule,
     RealtimeModule,
     NotificationsModule,
+    ActivityModule,
+    MilestonesModule,
+    PreferencesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

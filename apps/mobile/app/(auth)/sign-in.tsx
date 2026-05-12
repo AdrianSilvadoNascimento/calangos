@@ -1,23 +1,18 @@
-import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import * as Sentry from '@sentry/react-native';
 import { authClient } from '@enxoval/auth-client';
 import { clientEnv } from '@enxoval/env/client';
-import { useDialog } from '../../components/ui/dialog';
 import { reportError } from '../../lib/report-error';
-import { EyeIcon, EyeOffIcon } from 'lucide-react-native';
-
-const signInIcon = require('@/assets/calangos-organizando.png');
+import { Button, Input, LinkButton, Mascot, useDialog } from '../../components/ui';
 
 export default function SignInScreen() {
   const router = useRouter();
   const dialog = useDialog();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
@@ -30,28 +25,24 @@ export default function SignInScreen() {
       data: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
     });
     try {
-      const { error } = await authClient.signIn.email({
-        email: email.trim(),
-        password,
-      });
+      const { error } = await authClient.signIn.email({ email: email.trim(), password });
       if (error) {
         reportError(error, {
           action: 'sign_in',
           extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
         });
         await dialog.alert({
-          title: 'Erro ao entrar',
+          title: 'Ops, não rolou entrar',
           message: error.message ?? 'Verifique suas credenciais.',
         });
       }
-      // AuthGate in _layout.tsx handles redirect to /(app) after session is set
     } catch (err) {
       reportError(err, {
         action: 'sign_in.thrown',
         extra: { email: email.trim(), apiUrl: clientEnv.EXPO_PUBLIC_API_URL },
       });
       await dialog.alert({
-        title: 'Erro ao entrar',
+        title: 'Ops, não rolou entrar',
         message: 'Falha de conexão. Verifique sua internet e tente novamente.',
       });
     } finally {
@@ -60,76 +51,72 @@ export default function SignInScreen() {
   };
 
   return (
-    <LinearGradient colors={['#22C55E', '#14532D']} style={{ flex: 1 }}>
-      <SafeAreaView className="flex-1">
-        <KeyboardAvoidingView behavior="padding" className="flex-1">
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View className="px-8 py-8">
-              <Image
-                source={signInIcon}
-                style={{ width: 250, height: 250, objectFit: 'contain', alignSelf: 'center' }}
-              />
-              <Text className="text-3xl font-bold text-white mb-2">Entrar</Text>
-              <Text className="text-surface-100 mb-8">Vamos deixar esse enxoval em ordem?</Text>
-              <View className="mb-4">
-                <Text className="text-surface-300 text-sm mb-1.5 ml-1">E-mail</Text>
-                <TextInput
-                  className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
-                  placeholder="seu@email.com"
-                  placeholderTextColor="#4a7055"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+    <SafeAreaView className="flex-1 bg-bg-0">
+      <View className="px-4 py-3">
+        <LinkButton leftIcon="arrow-left" label="Voltar" onPress={() => router.back()} />
+      </View>
 
-              <View className="mb-8">
-                <Text className="text-surface-300 text-sm mb-1.5 ml-1">Senha</Text>
-                <View className="relative justify-center">
-                  <TextInput
-                    className="bg-surface-800 text-white rounded-xl pl-4 pr-12 py-3.5 text-base"
-                    placeholder="Sua senha"
-                    placeholderTextColor="#4a7055"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    className="absolute right-4"
-                    hitSlop={12}
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon size={20} color="#4a7055" />
-                    ) : (
-                      <EyeIcon size={20} color="#4a7055" />
-                    )}
-                  </Pressable>
-                </View>
-              </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40, paddingHorizontal: 32, paddingTop: 8 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="items-center mb-6">
+            <Mascot variant="organizando" size="lg" />
+          </View>
 
-              <Pressable
-                className="w-full bg-primary-600 rounded-2xl py-4 items-center mb-4 active:bg-primary-700"
-                onPress={handleSignIn}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-bold text-lg">Entrar</Text>
-                )}
-              </Pressable>
+          <Text className="text-ink-1 mb-1 font-display" style={{ fontSize: 32, letterSpacing: -0.8 }}>
+            Bom te ver de novo 🦎
+          </Text>
+          <Text className="text-ink-3 mb-8 text-base">
+            Vamos deixar esse enxoval em ordem?
+          </Text>
 
-              <Pressable onPress={() => router.push('/(auth)/sign-up')}>
-                <Text className="text-white/80 text-center">
-                  Não tem conta? <Text className="text-primary-400 font-semibold">Criar conta</Text>
-                </Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+          <View className="mb-4">
+            <Input
+              label="E-mail"
+              leftIcon="mail"
+              placeholder="seu@email.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+          </View>
+
+          <View className="mb-2">
+            <Input
+              label="Senha"
+              leftIcon="lock"
+              placeholder="Sua senha"
+              value={password}
+              onChangeText={setPassword}
+              secureToggle
+              autoComplete="password"
+            />
+          </View>
+
+          <Pressable className="self-end py-2 mb-6 active:opacity-70" onPress={() => {}}>
+            <Text className="text-brand-400 font-semibold text-sm">Esqueci a senha</Text>
+          </Pressable>
+
+          <Button label="Entrar" onPress={handleSignIn} loading={loading} />
+
+          <Pressable
+            onPress={() => router.push('/(auth)/sign-up')}
+            className="mt-4 active:opacity-70"
+          >
+            <Text className="text-ink-3 text-center">
+              Não tem conta? <Text className="text-brand-400 font-semibold">Criar conta</Text>
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

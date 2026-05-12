@@ -1,10 +1,15 @@
 import { Injectable, Inject, ConflictException, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { couples, profiles, rooms } from '@enxoval/db/schema';
+import { eq, sql } from 'drizzle-orm';
+import { couples, profiles, rooms, products } from '@enxoval/db/schema';
 import { DEFAULT_ROOMS } from '@enxoval/db';
 import { DB_TOKEN } from '../database/database.module';
 import type { DB } from '../database/database.module';
-import type { CreateCoupleInput, JoinCoupleInput, UpdateCoupleInput } from '@enxoval/contracts';
+import type {
+  CreateCoupleInput,
+  JoinCoupleInput,
+  UpdateCoupleInput,
+  CoupleProgress,
+} from '@enxoval/contracts';
 
 @Injectable()
 export class CouplesService {
@@ -48,6 +53,16 @@ export class CouplesService {
       where: eq(profiles.coupleId, coupleId),
     });
     return members.length;
+  }
+
+  async getMembersDetails(coupleId: string) {
+    return this.db.query.profiles.findMany({
+      where: eq(profiles.coupleId, coupleId),
+      columns: {
+        userId: true,
+        displayName: true,
+      },
+    });
   }
 
   /**
@@ -103,6 +118,86 @@ export class CouplesService {
 
     if (!updated) throw new NotFoundException('Couple not found');
     return updated;
+  }
+
+  /**
+   * Aggregate progress for the couple — totals, items by status, per-room split,
+   * planned spend in cents. Receives roomIds via DB filter (no privacy issue
+   * since we already gate on coupleId).
+   */
+  async getProgress(coupleId: string): Promise<CoupleProgress> {
+    const coupleRooms = await this.db.query.rooms.findMany({
+      where: eq(rooms.coupleId, coupleId),
+    });
+
+    if (coupleRooms.length === 0) {
+      return {
+        totalItems: 0,
+        totalPlannedCents: 0,
+        currency: 'BRL',
+        byStatus: { wishlist: 0, purchased: 0, received: 0, cancelled: 0 },
+        byRoom: [],
+        percentReceived: 0,
+      };
+    }
+
+    const roomIds = coupleRooms.map((r) => r.id);
+    const rows = await this.db.query.products.findMany({
+      where: sql`${products.roomId} IN ${roomIds}`,
+      columns: {
+        id: true,
+        roomId: true,
+        status: true,
+        priceCents: true,
+        currency: true,
+      },
+    });
+
+    const byStatus = { wishlist: 0, purchased: 0, received: 0, cancelled: 0 };
+    let totalPlannedCents = 0;
+    let currency = 'BRL';
+    const perRoom = new Map<string, { total: number; received: number }>();
+
+    for (const r of rows) {
+      byStatus[r.status]++;
+      if (r.status !== 'cancelled') {
+        if (r.priceCents != null) {
+          totalPlannedCents += r.priceCents;
+          currency = r.currency || currency;
+        }
+        const slot = perRoom.get(r.roomId) ?? { total: 0, received: 0 };
+        slot.total += 1;
+        if (r.status === 'received') slot.received += 1;
+        perRoom.set(r.roomId, slot);
+      }
+    }
+
+    const totalAlive = byStatus.wishlist + byStatus.purchased + byStatus.received;
+    const percentReceived = totalAlive === 0
+      ? 0
+      : Math.round((byStatus.received / totalAlive) * 100);
+
+    const byRoom = coupleRooms.map((room) => {
+      const agg = perRoom.get(room.id) ?? { total: 0, received: 0 };
+      const pct = agg.total === 0 ? 0 : Math.round((agg.received / agg.total) * 100);
+      return {
+        roomId: room.id,
+        name: room.name,
+        icon: room.icon,
+        total: agg.total,
+        received: agg.received,
+        percentReceived: pct,
+      };
+    });
+
+    return {
+      totalItems: byStatus.wishlist + byStatus.purchased + byStatus.received + byStatus.cancelled,
+      totalPlannedCents,
+      currency,
+      byStatus,
+      byRoom,
+      percentReceived,
+    };
   }
 
   /**

@@ -1,12 +1,29 @@
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
 
 /**
- * Schema for server-side environment variables.
- * These variables MUST NEVER be exposed to the mobile/client bundle.
- *
- * Validated eagerly at import time — the process will crash on startup
- * if any required variable is missing, preventing silent failures.
+ * Walks up from the current working directory looking for the monorepo root
+ * (identified by `pnpm-workspace.yaml`) and loads its `.env` file. This lets
+ * `apps/api`, `packages/db` and any other server-side workspace share a
+ * single source of truth for environment variables.
  */
+function loadMonorepoEnv(): void {
+  let dir = process.cwd();
+  while (true) {
+    if (existsSync(resolve(dir, 'pnpm-workspace.yaml'))) {
+      loadDotenv({ path: resolve(dir, '.env'), quiet: true });
+      return;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return;
+    dir = parent;
+  }
+}
+
+loadMonorepoEnv();
+
 const serverSchema = z.object({
   // ── Database ────────────────────────────────────────────
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),

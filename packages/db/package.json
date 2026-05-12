@@ -22,7 +22,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:reset": "tsx --env-file=.env src/reset.ts"
+    "db:reset": "tsx src/reset.ts"
   },
   "dependencies": {
     "@enxoval/env": "workspace:*",
@@ -32,7 +32,6 @@
   },
   "devDependencies": {
     "@enxoval/config-ts": "workspace:*",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.30.0",
     "rimraf": "^6.0.0",
     "tsx": "^4.0.0",

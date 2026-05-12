@@ -8,6 +8,8 @@ export interface ScrapedMetadata {
   description: string | null;
   priceCents: number | null;
   storeName: string;
+  /** true when storeName comes from a known-domain match; false when derived from og:site_name or the domain itself. */
+  storeNameConfident: boolean;
 }
 
 const BROWSER_HEADERS: Record<string, string> = {
@@ -75,6 +77,20 @@ function friendlyStoreName(domain: string, fallback?: string | null): string {
   return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
+function resolveStoreName(
+  domain: string,
+  fallback?: string | null,
+): { storeName: string; confident: boolean } {
+  // Try exact match first, then walk up subdomains: "s.shopee.com.br" → "shopee.com.br".
+  const segments = domain.split('.');
+  for (let i = 0; i < segments.length - 1; i++) {
+    const candidate = segments.slice(i).join('.');
+    const known = STORE_NAME_BY_DOMAIN[candidate];
+    if (known) return { storeName: known, confident: true };
+  }
+  return { storeName: friendlyStoreName(domain, fallback), confident: false };
+}
+
 @Injectable()
 export class ScrapingService {
   private readonly logger = new Logger(ScrapingService.name);
@@ -119,12 +135,14 @@ export class ScrapingService {
       const response = await fetch(rawUrl, { headers, redirect: 'follow' });
       if (!response.ok) {
         this.logger.warn(`Fetch ${response.status} for ${rawUrl}`);
+        const resolved = resolveStoreName(domain);
         return {
           title: null,
           image: null,
           description: null,
           priceCents: null,
-          storeName: friendlyStoreName(domain),
+          storeName: resolved.storeName,
+          storeNameConfident: resolved.confident,
         };
       }
 
@@ -184,12 +202,14 @@ export class ScrapingService {
       this.logger.error(`Failed to scrape ${rawUrl}`, error);
     }
 
+    const resolved = resolveStoreName(domain, siteName);
     return {
       title: title || null,
       image: image || null,
       description: description || null,
       priceCents,
-      storeName: friendlyStoreName(domain, siteName),
+      storeName: resolved.storeName,
+      storeNameConfident: resolved.confident,
     };
   }
 

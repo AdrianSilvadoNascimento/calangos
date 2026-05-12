@@ -11,7 +11,14 @@ import { authClient } from '@enxoval/auth-client';
 import { clientEnv } from '@enxoval/env/client';
 import { useDeepLinks } from '../hooks/use-deep-links';
 import { DialogProvider } from '../components/ui/dialog';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useFonts } from 'expo-font';
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+} from '@expo-google-fonts/geist';
+import { Fraunces_400Regular_Italic } from '@expo-google-fonts/fraunces';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,17 +31,9 @@ const queryClient = new QueryClient({
 
 function SplashScreen() {
   return (
-    <LinearGradient colors={['#22C55E', '#14532D']} style={{ flex: 1 }}>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <ActivityIndicator color="#4ade80" size="large" />
-      </View>
-    </LinearGradient>
+    <View style={{ flex: 1, backgroundColor: '#07120D', justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator color="#34B26C" size="large" />
+    </View>
   );
 }
 
@@ -50,7 +49,7 @@ function RootStack() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#14532D' },
+        contentStyle: { backgroundColor: '#0C1B14' }, // bg-1
         animation: 'slide_from_right',
       }}
     >
@@ -67,6 +66,14 @@ function RootStack() {
 }
 
 function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    Fraunces_400Regular_Italic,
+  });
+
   useEffect(() => {
     try {
       const environment =
@@ -83,6 +90,8 @@ function RootLayout() {
       console.warn('Sentry init failed', e);
     }
   }, []);
+
+  if (!fontsLoaded) return <SplashScreen />;
 
   return (
     <SafeAreaProvider>

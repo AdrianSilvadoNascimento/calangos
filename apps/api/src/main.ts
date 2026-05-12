@@ -1,7 +1,6 @@
-import 'dotenv/config';
+import { serverEnv } from '@enxoval/env/server';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { serverEnv } from '@enxoval/env/server';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

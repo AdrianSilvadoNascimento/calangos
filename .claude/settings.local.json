@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const { serverEnv } = require\\('@enxoval/env/server'\\); console.log\\('DB host from packages/db CWD:', new URL\\(serverEnv.DATABASE_URL\\).hostname\\);\")"
+    ]
+  }
+}

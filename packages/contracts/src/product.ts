@@ -4,13 +4,33 @@ export const createProductSchema = z.object({
   url: z.string().url(),
   roomId: z.string().uuid(),
   title: z.string().optional(),
+  description: z.string().max(2000).optional(),
+  storeName: z.string().max(80).optional(),
   priceCents: z.number().int().nonnegative().optional(),
   notes: z.string().max(1000).optional(),
 });
 
+export const productPreviewQuerySchema = z.object({
+  url: z.string().url(),
+});
+
+export const productPreviewResponseSchema = z.object({
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  image: z.string().nullable(),
+  priceCents: z.number().int().nullable(),
+  storeName: z.string(),
+  storeNameConfident: z.boolean(),
+});
+
+export type ProductPreviewQuery = z.infer<typeof productPreviewQuerySchema>;
+export type ProductPreviewResponse = z.infer<typeof productPreviewResponseSchema>;
+
 export const updateProductSchema = z.object({
   url: z.string().url().optional(),
   title: z.string().optional(),
+  description: z.string().max(2000).optional(),
+  storeName: z.string().max(80).optional(),
   roomId: z.string().uuid().optional(),
   status: z.enum(['wishlist', 'purchased', 'received', 'cancelled']).optional(),
   notes: z.string().max(1000).optional(),

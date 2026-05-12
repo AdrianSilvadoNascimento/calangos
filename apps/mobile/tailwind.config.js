@@ -9,41 +9,71 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+        // ── Fundos (forest) ──────────────────────────────
+        bg: {
+          0: '#07120D',
+          1: '#0C1B14',
+          2: '#122820',
+          3: '#18372C',
+          4: '#1F4A3A',
         },
+        // ── Linhas / Bordas ──────────────────────────────
+        line: {
+          1: '#1B3326',
+          2: '#294A39',
+          3: '#3A6A53',
+        },
+        // ── Texto (ink) ──────────────────────────────────
+        ink: {
+          1: '#F2F6EF',
+          2: '#C2D0C5',
+          3: '#8AA194',
+          4: '#5F786A',
+        },
+        // ── Verde de marca (brand) ────────────────────────
+        brand: {
+          100: '#DDF5E4',
+          300: '#9AE3B6',
+          400: '#5FCB8B',
+          500: '#34B26C',
+          700: '#155434',
+          900: '#0A2A1A',
+        },
+        // ── Acentos ──────────────────────────────────────
+        coral:   '#E89784',
+        amber:   '#D9B370',
+        rose:    '#D98A99',
+        sky:     '#7FB6D9',
+        danger:  '#E0746A',
+
+        // ── Compat aliases (remover gradualmente) ────────
+        // Mantidos temporariamente para não quebrar imports
+        // que ainda referenciam surface-* e primary-*
         surface: {
-          50: '#F6F7F2',
-          100: '#c8e6c9',
-          200: '#a5d6a7',
-          300: '#81c784',
-          400: '#5c8a65',
-          500: '#3d6645',
-          600: '#2a4c31',
-          700: '#1f3825',
-          800: '#152618',
-          900: '#0c1a0d',
+          300: '#8AA194',
+          400: '#5F786A',
+          500: '#3A6A53',
+          600: '#294A39',
+          700: '#1B3326',
+          800: '#18372C',
+          900: '#0C1B14',
         },
-        accent: {
-          shimmer: '#a3e635',
-          amber: '#fbbf24',
-          teal: '#2dd4bf',
-          rose: '#f43f5e',
-          coral: '#FB7185',
+        primary: {
+          300: '#9AE3B6',
+          400: '#5FCB8B',
+          500: '#34B26C',
+          600: '#34B26C',
+          700: '#155434',
+          900: '#0A2A1A',
         },
       },
       fontFamily: {
-        sans: ['Inter'],
-        heading: ['Inter'],
+        sans:     ['Geist_400Regular', 'System'],
+        medium:   ['Geist_500Medium', 'System'],
+        semibold: ['Geist_600SemiBold', 'System'],
+        bold:     ['Geist_700Bold', 'System'],
+        mono:     ['Geist_400Regular', 'System'],  // GeistMono não disponível no pacote
+        display:  ['Fraunces_400Regular_Italic', 'System'],
       },
     },
   },

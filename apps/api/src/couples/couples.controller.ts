@@ -56,11 +56,30 @@ export class CouplesController {
   }
 
   @Get('me/members')
-  async getMemberCount(@Session() session: UserSession) {
+  async getMembers(@Session() session: UserSession) {
     const couple = await this.couplesService.findByUserId(session.user.id);
-    if (!couple) return { count: 0 };
-    const count = await this.couplesService.countMembers(couple.id);
-    return { count };
+    if (!couple) return { count: 0, members: [] };
+    const members = await this.couplesService.getMembersDetails(couple.id);
+    return {
+      count: members.length,
+      members: members.map(m => ({ userId: m.userId, name: m.displayName }))
+    };
+  }
+
+  @Get('me/progress')
+  async getProgress(@Session() session: UserSession) {
+    const couple = await this.couplesService.findByUserId(session.user.id);
+    if (!couple) {
+      return {
+        totalItems: 0,
+        totalPlannedCents: 0,
+        currency: 'BRL',
+        byStatus: { wishlist: 0, purchased: 0, received: 0, cancelled: 0 },
+        byRoom: [],
+        percentReceived: 0,
+      };
+    }
+    return this.couplesService.getProgress(couple.id);
   }
 
   @Post('invite')

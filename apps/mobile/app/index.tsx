@@ -1,48 +1,60 @@
-import { View, Text, Pressable, Image } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-
-const logo = require('@/assets/calangos-signin.png');
+import { Button, Icon, Mascot } from '../components/ui';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
-    <LinearGradient colors={['#22C55E', '#14532D']} style={{ flex: 1 }}>
-      <SafeAreaView className="flex-1">
-        <View className="flex-1 items-center justify-center px-8 pb-4">
-          <Image
-            source={logo}
-            style={{ width: 200, height: 200, objectFit: 'contain' }}
-          />
-          <Text className="text-3xl font-bold text-white mb-2">Calangos</Text>
-          <Text className="text-base text-white/80 text-center mb-12">
-            Organize o enxoval do seu casamento{'\n'}junto com seu amor
+    <SafeAreaView className="flex-1 bg-bg-0">
+      <View className="flex-1 items-center justify-between px-6 pt-10 pb-10">
+        {/* Centro: mascote + texto */}
+        <View className="flex-1 items-center justify-center">
+          <Mascot variant="signin" size="lg" glow />
+
+          <Text
+            className="text-ink-1 text-center mt-8 mb-3 font-display"
+            style={{ fontSize: 40, letterSpacing: -1 }}
+          >
+            Calangos
           </Text>
 
-          <Pressable
-            className="w-full bg-primary-600 rounded-2xl py-4 items-center mb-4 active:bg-primary-700"
+          <Text className="text-ink-3 text-center text-base" style={{ maxWidth: 260, lineHeight: 24 }}>
+            Organizem o enxoval do casamento juntinhos, no mesmo lugar.
+          </Text>
+
+          {/* Paw prints decorativos */}
+          <View className="flex-row mt-5" style={{ gap: 4 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Icon key={i} name="paw" tone="brand" size={12} outline />
+            ))}
+          </View>
+        </View>
+
+        {/* Botões */}
+        <View className="w-full" style={{ gap: 12 }}>
+          <Button
+            label="Criar conta"
+            rightIcon="arrow-right"
             onPress={() => router.push('/(auth)/sign-up')}
-          >
-            <Text className="text-white font-semibold text-base">Criar conta</Text>
-          </Pressable>
-
-          <Pressable
-            className="w-full bg-primary-600/20 border border-primary-600/40 rounded-2xl py-4 items-center mb-4 active:bg-primary-600/30"
+          />
+          <Button
+            label="Tenho um convite"
+            variant="ghost"
+            leftIcon="mail"
             onPress={() => router.push('/(auth)/accept-invite')}
-          >
-            <Text className="text-primary-300 font-semibold text-base">💌 Tenho um convite</Text>
-          </Pressable>
-
+          />
           <Pressable
-            className="w-full bg-secondary border border-primary-600/40 rounded-2xl py-4 items-center active:bg-primary-600/30"
             onPress={() => router.push('/(auth)/sign-in')}
+            className="w-full items-center py-2 active:opacity-70"
           >
-            <Text className="text-white font-semibold text-base">Já tenho conta</Text>
+            <Text className="text-ink-3 text-base">
+              Já tenho conta · <Text className="text-brand-400 font-semibold">Entrar</Text>
+            </Text>
           </Pressable>
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+      </View>
+    </SafeAreaView>
   );
 }

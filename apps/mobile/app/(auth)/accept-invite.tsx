@@ -1,26 +1,12 @@
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Image,
-} from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import * as Linking from 'expo-linking';
 import { authClient } from '@enxoval/auth-client';
 import { useInviteInfo, useAcceptInvite } from '../../hooks/use-invite';
-import { useDialog } from '../../components/ui/dialog';
 import { reportError } from '../../lib/report-error';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react-native';
-
-const togetherIcon = require('@/assets/calangos-juntos.png');
+import { Button, Card, Icon, Input, LinkButton, Mascot, useDialog } from '../../components/ui';
 
 /**
  * Extracts a token from various input formats:
@@ -32,7 +18,6 @@ function extractToken(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  // Try parsing as a URL/deep link
   try {
     const parsed = Linking.parse(trimmed);
     const t = parsed.queryParams?.token;
@@ -41,10 +26,17 @@ function extractToken(input: string): string | null {
     // not a URL, treat as raw token
   }
 
-  // If it looks like a raw hex token (32 chars), use it directly
   if (/^[a-f0-9]{16,}$/i.test(trimmed)) return trimmed;
-
   return null;
+}
+
+function AuthBackButton() {
+  const router = useRouter();
+  return (
+    <View className="px-4 py-3">
+      <LinkButton leftIcon="arrow-left" label="Voltar" onPress={() => router.back()} />
+    </View>
+  );
 }
 
 export default function AcceptInviteScreen() {
@@ -52,7 +44,6 @@ export default function AcceptInviteScreen() {
   const dialog = useDialog();
   const { token: deepLinkToken } = useLocalSearchParams<{ token?: string }>();
 
-  // Token state: can come from deep link or manual input
   const [resolvedToken, setResolvedToken] = useState<string | null>(deepLinkToken ?? null);
   const [linkInput, setLinkInput] = useState('');
   const [parseError, setParseError] = useState('');
@@ -62,18 +53,13 @@ export default function AcceptInviteScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Sync deep link token if it arrives later (e.g. from navigation)
   useEffect(() => {
-    if (deepLinkToken && !resolvedToken) {
-      setResolvedToken(deepLinkToken);
-    }
+    if (deepLinkToken && !resolvedToken) setResolvedToken(deepLinkToken);
   }, [deepLinkToken, resolvedToken]);
 
-  // Pre-fill email from invite
   useEffect(() => {
     if (invite?.email) setEmail(invite.email);
   }, [invite?.email]);
@@ -108,10 +94,7 @@ export default function AcceptInviteScreen() {
         name: name.trim(),
       });
 
-      const signIn = await authClient.signIn.email({
-        email: email.trim(),
-        password,
-      });
+      const signIn = await authClient.signIn.email({ email: email.trim(), password });
 
       if (signIn.error) {
         await dialog.alert({
@@ -121,13 +104,10 @@ export default function AcceptInviteScreen() {
         router.replace('/(auth)/sign-in');
         return;
       }
-
-      // Navigation is handled automatically by Stack.Protected guard
-      // when the auth session state changes — no manual navigate needed.
     } catch (err: any) {
       reportError(err, { action: 'accept_invite' });
       await dialog.alert({
-        title: 'Erro',
+        title: 'Ops, não rolou',
         message: err?.response?.data?.message ?? err?.message ?? 'Não foi possível aceitar o convite.',
       });
     } finally {
@@ -138,74 +118,67 @@ export default function AcceptInviteScreen() {
   // ── State: Waiting for manual link input ──────────────────
   if (!resolvedToken) {
     return (
-      <LinearGradient colors={['#22C55E', '#14532D']} className="flex-1">
-        <SafeAreaView className="flex-1">
-          <KeyboardAvoidingView behavior="padding" className="flex-1">
-            <ScrollView
-              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-            >
-              <View className="px-8 py-8">
-                <Image
-                  source={togetherIcon}
-                  style={{ width: 250, height: 250, objectFit: 'contain', alignSelf: 'center' }}
-                />
-                <Text className="text-3xl font-bold text-white/90 mb-2">
-                  Entrar com convite
+      <SafeAreaView className="flex-1 bg-bg-0">
+        <AuthBackButton />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 40, paddingHorizontal: 32, paddingTop: 8 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
+            <View className="items-center mb-6">
+              <Mascot variant="juntos" size="lg" />
+            </View>
+            <Text className="text-ink-1 mb-1 font-display" style={{ fontSize: 32, letterSpacing: -0.8 }}>
+              Te chamaram pra cá ♥
+            </Text>
+            <Text className="text-ink-3 mb-6 text-base">
+              Cole abaixo o link de convite que seu calanguinho enviou.
+            </Text>
+
+            {/* Card explicativo coral */}
+            <Card className="mb-6" style={{ backgroundColor: 'rgba(232,151,132,0.08)', borderColor: 'rgba(232,151,132,0.20)' }}>
+              <View className="flex-row items-start" style={{ gap: 10 }}>
+                <Icon name="heart" tone="coral" size={18} />
+                <Text className="text-ink-2 text-sm flex-1">
+                  Você vai entrar no enxoval do casal — todos os itens já adicionados ficam visíveis pra vocês dois.
                 </Text>
-                <Text className="text-white/70 mb-8">
-                  Cole abaixo o link de convite que seu parceiro(a) enviou.
-                </Text>
-
-                <View className="mb-4">
-                  <Text className="text-white/80 text-sm mb-1.5 ml-1">
-                    Link de convite
-                  </Text>
-                  <TextInput
-                    className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
-                    placeholder="enxoval://invite?token=..."
-                    placeholderTextColor="#4a7055"
-                    value={linkInput}
-                    onChangeText={(t) => {
-                      setLinkInput(t);
-                      setParseError('');
-                    }}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    multiline
-                  />
-                  {parseError ? (
-                    <Text className="text-red-400 text-xs mt-1.5 ml-1">{parseError}</Text>
-                  ) : null}
-                </View>
-
-                <Pressable
-                  className="w-full bg-primary-600 rounded-2xl py-4 items-center mb-4 active:bg-primary-700"
-                  onPress={handleParseLink}
-                >
-                  <Text className="text-white font-semibold text-base">Continuar</Text>
-                </Pressable>
-
-                <Pressable onPress={() => router.back()}>
-                  <View className="flex-row items-center justify-center gap-2">
-                    <ArrowLeftIcon size={16} color="#4ade80" />
-                    <Text className="text-white/80 text-center font-semibold">Voltar</Text>
-                  </View>
-                </Pressable>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView >
-      </LinearGradient >
+            </Card>
+
+            <View className="mb-2">
+              <Input
+                label="Link de convite"
+                leftIcon="link"
+                placeholder="enxoval://invite?token=..."
+                value={linkInput}
+                onChangeText={(t) => {
+                  setLinkInput(t);
+                  setParseError('');
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                error={parseError || undefined}
+              />
+            </View>
+
+            <View className="mt-6">
+              <Button label="Continuar" onPress={handleParseLink} />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   }
 
   // ── State: Loading invite info ────────────────────────────
   if (isPending) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center">
-        <ActivityIndicator color="#4ade80" size="large" />
+      <SafeAreaView className="flex-1 bg-bg-0 items-center justify-center">
+        <ActivityIndicator color="#34B26C" size="large" />
       </SafeAreaView>
     );
   }
@@ -213,17 +186,24 @@ export default function AcceptInviteScreen() {
   // ── State: Invite not found ───────────────────────────────
   if (isError || !invite) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center px-8">
-        <Text className="text-white text-lg mb-2">Convite não encontrado</Text>
-        <Text className="text-surface-400 text-center mb-4">
-          {(error as any)?.response?.data?.message ?? 'Confira o link com seu parceiro(a).'}
-        </Text>
-        <Pressable onPress={() => {
-          setResolvedToken(null);
-          setLinkInput('');
-        }}>
-          <Text className="text-primary-400 font-semibold">Tentar outro link</Text>
-        </Pressable>
+      <SafeAreaView className="flex-1 bg-bg-0">
+        <AuthBackButton />
+        <View className="flex-1 items-center justify-center px-8">
+          <Mascot variant="organizando" size="sm" />
+          <Text className="text-ink-1 text-lg mt-4 mb-2 font-semibold">Convite não encontrado</Text>
+          <Text className="text-ink-3 text-center mb-6 text-sm">
+            {(error as any)?.response?.data?.message ?? 'Confira o link com seu calanguinho.'}
+          </Text>
+          <Button
+            label="Tentar outro link"
+            variant="ghost"
+            fullWidth={false}
+            onPress={() => {
+              setResolvedToken(null);
+              setLinkInput('');
+            }}
+          />
+        </View>
       </SafeAreaView>
     );
   }
@@ -231,16 +211,23 @@ export default function AcceptInviteScreen() {
   // ── State: Invite expired or used ─────────────────────────
   if (invite.expired || invite.used) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center px-8">
-        <Text className="text-white text-lg mb-2">
-          {invite.used ? 'Convite já foi usado' : 'Convite expirado'}
-        </Text>
-        <Text className="text-surface-400 text-center mb-4">
-          Peça um novo link para seu parceiro(a).
-        </Text>
-        <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
-          <Text className="text-primary-400 font-semibold">Voltar para login</Text>
-        </Pressable>
+      <SafeAreaView className="flex-1 bg-bg-0">
+        <AuthBackButton />
+        <View className="flex-1 items-center justify-center px-8">
+          <Mascot variant="organizando" size="sm" />
+          <Text className="text-ink-1 text-lg mt-4 mb-2 font-semibold">
+            {invite.used ? 'Convite já foi usado' : 'Convite expirado'}
+          </Text>
+          <Text className="text-ink-3 text-center mb-6 text-sm">
+            Peça um novo link para seu calanguinho.
+          </Text>
+          <Pressable
+            onPress={() => router.replace('/(auth)/sign-in')}
+            className="active:opacity-70"
+          >
+            <Text className="text-brand-400 font-semibold">Voltar para login</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
@@ -249,93 +236,73 @@ export default function AcceptInviteScreen() {
   const emailLocked = !!invite.email;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900">
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
+    <SafeAreaView className="flex-1 bg-bg-0">
+      <AuthBackButton />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40, paddingHorizontal: 32, paddingTop: 8 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          <View className="px-8 py-8">
-            <Text className="text-3xl font-bold text-white mb-2">
-              Você foi convidado 🎉
-            </Text>
-            <Text className="text-surface-400 mb-8">
-              {invite.coupleName
-                ? `Crie sua conta para entrar em "${invite.coupleName}".`
-                : 'Crie sua conta para entrar no enxoval.'}
-            </Text>
-
-            <View className="mb-4">
-              <Text className="text-surface-300 text-sm mb-1.5 ml-1">Seu nome</Text>
-              <TextInput
-                className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base"
-                placeholder="Ex: Ana"
-                placeholderTextColor="#4a7055"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-surface-300 text-sm mb-1.5 ml-1">Email</Text>
-              <TextInput
-                className={`bg-surface-800 ${emailLocked ? 'text-surface-500' : 'text-white'} rounded-xl px-4 py-3.5 text-base`}
-                placeholder="voce@email.com"
-                placeholderTextColor="#4a7055"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!emailLocked}
-              />
-              {emailLocked && (
-                <Text className="text-surface-500 text-xs mt-1 ml-1">
-                  Email pré-definido pelo convite.
-                </Text>
-              )}
-            </View>
-
-            <View className="mb-8">
-              <Text className="text-surface-300 text-sm mb-1.5 ml-1">Senha</Text>
-              <View className="relative justify-center">
-                <TextInput
-                  className="bg-surface-800 text-white rounded-xl pl-4 pr-12 py-3.5 text-base"
-                  placeholder="Mínimo 8 caracteres"
-                  placeholderTextColor="#4a7055"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="absolute right-4"
-                  hitSlop={12}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon size={20} color="#4a7055" />
-                  ) : (
-                    <EyeIcon size={20} color="#4a7055" />
-                  )}
-                </Pressable>
-              </View>
-            </View>
-
-            <Pressable
-              className="w-full bg-primary-600 rounded-2xl py-4 items-center active:bg-primary-700"
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-semibold text-base">
-                  Entrar no enxoval
-                </Text>
-              )}
-            </Pressable>
+          <View className="items-center mb-6">
+            <Mascot variant="juntos" size="lg" />
           </View>
+          <Text className="text-ink-1 mb-1 font-display" style={{ fontSize: 32, letterSpacing: -0.8 }}>
+            Você foi convidado ♥
+          </Text>
+          <Text className="text-ink-3 mb-8 text-base">
+            {invite.coupleName
+              ? `Crie sua conta para entrar em "${invite.coupleName}".`
+              : 'Crie sua conta para entrar no enxoval.'}
+          </Text>
+
+          <View className="mb-4">
+            <Input
+              label="Seu nome"
+              leftIcon="user"
+              placeholder="Ex: Ana"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoComplete="name"
+            />
+          </View>
+
+          <View className="mb-4">
+            <Input
+              label="E-mail"
+              leftIcon="mail"
+              placeholder="voce@email.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!emailLocked}
+              autoComplete="email"
+            />
+            {emailLocked && (
+              <Text className="text-ink-4 text-xs mt-1.5 ml-1">
+                Email pré-definido pelo convite.
+              </Text>
+            )}
+          </View>
+
+          <View className="mb-8">
+            <Input
+              label="Senha"
+              leftIcon="lock"
+              placeholder="Mínimo 8 caracteres"
+              value={password}
+              onChangeText={setPassword}
+              secureToggle
+              autoComplete="password-new"
+            />
+          </View>
+
+          <Button label="Entrar no enxoval" onPress={handleSubmit} loading={submitting} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

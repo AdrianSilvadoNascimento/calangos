@@ -2,3 +2,8 @@ export * from './product';
 export * from './room';
 export * from './couple';
 export * from './pagination';
+export * from './progress';
+export * from './activity';
+export * from './milestone';
+export * from './preferences';
+export * from './notification';

@@ -1,25 +1,30 @@
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
+import { View, Text, Image, Pressable, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
+import type { Paginated, ProductPreviewResponse } from '@enxoval/contracts';
 import { api } from '../../lib/api';
 import { useRooms } from '../../hooks/use-rooms';
-import type { InfiniteData } from '@tanstack/react-query';
-import type { Paginated } from '@enxoval/contracts';
 import type { ProductData } from '../../hooks/use-products';
 import { useClipboardSuggestion } from '../../stores/clipboard-suggestion';
-import { useDialog } from '../../components/ui/dialog';
 import { reportError } from '../../lib/report-error';
+import { Button, Icon, Input, LinkButton, useDialog } from '../../components/ui';
+
+type PreviewState = {
+  title: string | null;
+  image: string | null;
+  priceCents: number | null;
+  storeName: string;
+  storeNameConfident: boolean;
+  description: string | null;
+};
+
+function formatBRL(cents: number) {
+  const value = (cents / 100).toFixed(2).replace('.', ',');
+  return `R$ ${value}`;
+}
 
 export default function AddProductScreen() {
   const router = useRouter();
@@ -35,10 +40,91 @@ export default function AddProductScreen() {
   const [url, setUrl] = useState(urlParam ?? '');
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [description, setDescription] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [previewError, setPreviewError] = useState(false);
+  const storeNameTouched = useRef(false);
+  const descriptionTouched = useRef(false);
+  const lastPreviewedUrl = useRef<string | null>(null);
+  // URLs vindas do clipboard (urlParam) já são URLs completas — não vale esperar
+  // o debounce de digitação. Pulamos direto para o fetch.
+  const skipDebounceFor = useRef<string | null>(urlParam?.trim() || null);
 
   useEffect(() => {
     setUrl(urlParam ?? '');
+    if (urlParam) skipDebounceFor.current = urlParam.trim();
   }, [urlParam]);
+
+  useEffect(() => {
+    const trimmed = url.trim();
+    if (!trimmed || !/^https?:\/\/\S+/i.test(trimmed)) return;
+    if (lastPreviewedUrl.current === trimmed) return;
+
+    const immediate = skipDebounceFor.current === trimmed;
+    skipDebounceFor.current = null;
+
+    const runPreview = async () => {
+      lastPreviewedUrl.current = trimmed;
+      setPreviewing(true);
+      setPreviewError(false);
+      try {
+        const { data } = await api.get<ProductPreviewResponse>('/products/preview', {
+          params: { url: trimmed },
+        });
+        setPreview({
+          title: data.title,
+          image: data.image,
+          priceCents: data.priceCents,
+          storeName: data.storeName,
+          storeNameConfident: data.storeNameConfident,
+          description: data.description,
+        });
+        if (!storeNameTouched.current && data.storeNameConfident) {
+          setStoreName(data.storeName);
+        }
+        if (!descriptionTouched.current && data.description) {
+          setDescription(data.description);
+        }
+      } catch (err) {
+        setPreviewError(true);
+        reportError(err, { action: 'product.preview' });
+      } finally {
+        setPreviewing(false);
+      }
+    };
+
+    if (immediate) {
+      runPreview();
+      return;
+    }
+
+    const handle = setTimeout(runPreview, 600);
+    return () => clearTimeout(handle);
+  }, [url]);
+
+  const handleUrlChange = (next: string) => {
+    setUrl(next);
+    if (next.trim() !== lastPreviewedUrl.current) {
+      storeNameTouched.current = false;
+      descriptionTouched.current = false;
+      setStoreName('');
+      setDescription('');
+      setPreview(null);
+      setPreviewError(false);
+    }
+  };
+
+  const handleStoreNameChange = (next: string) => {
+    storeNameTouched.current = true;
+    setStoreName(next);
+  };
+
+  const handleDescriptionChange = (next: string) => {
+    descriptionTouched.current = true;
+    setDescription(next);
+  };
 
   const handleSubmit = async () => {
     const trimmedUrl = url.trim();
@@ -55,9 +141,7 @@ export default function AddProductScreen() {
       InfiniteData<Paginated<ProductData>>
     >({ queryKey: ['products'] });
     const alreadyExists = cachedQueries.some(([, data]) =>
-      data?.pages.some((page) =>
-        page.items.some((p) => p.url === trimmedUrl),
-      ),
+      data?.pages.some((page) => page.items.some((p) => p.url === trimmedUrl)),
     );
     if (alreadyExists) {
       ignoreUrl(trimmedUrl);
@@ -72,15 +156,26 @@ export default function AddProductScreen() {
 
     setSubmitting(true);
     try {
+      const trimmedStore = storeName.trim();
+      const trimmedDescription = description.trim();
       await api.post('/products', {
         url: trimmedUrl,
         roomId: selectedRoomId,
+        ...(trimmedStore ? { storeName: trimmedStore } : null),
+        ...(trimmedDescription ? { description: trimmedDescription } : null),
       });
       ignoreUrl(trimmedUrl);
       dismissSuggestion();
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setUrl('');
+      setStoreName('');
+      setDescription('');
+      setPreview(null);
+      setPreviewError(false);
+      storeNameTouched.current = false;
+      descriptionTouched.current = false;
+      lastPreviewedUrl.current = null;
       router.setParams({ url: '' });
       router.replace(`/(app)/room/${selectedRoomId}`);
     } catch (err: any) {
@@ -98,7 +193,7 @@ export default function AddProductScreen() {
       }
       reportError(err, { action: 'product.add' });
       await dialog.alert({
-        title: 'Erro',
+        title: 'Ops, não rolou',
         message: err?.response?.data?.message ?? 'Não foi possível adicionar o produto.',
       });
     } finally {
@@ -107,40 +202,81 @@ export default function AddProductScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900">
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
+    <SafeAreaView className="flex-1 bg-bg-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
         <ScrollView
           contentContainerStyle={{ paddingBottom: 32 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-row items-center px-6 pt-4 pb-4">
-            <Pressable onPress={() => router.back()}>
-              <Text className="text-primary-400 font-semibold">Cancelar</Text>
-            </Pressable>
-            <Text className="text-white font-bold text-lg flex-1 text-center">
+          <View className="flex-row items-center px-4 pt-2 pb-4">
+            <View className="flex-1">
+              <LinkButton leftIcon="arrow-left" label="Voltar" onPress={() => router.back()} />
+            </View>
+            <Text className="text-ink-1 font-bold text-lg flex-1 text-center">
               Adicionar item
             </Text>
-            <View style={{ width: 60 }} />
+            <View className="flex-1" />
           </View>
 
           <View className="px-6">
-            <Text className="text-surface-300 text-sm mb-1.5 ml-1">Link do produto</Text>
-            <TextInput
-              className="bg-surface-800 text-white rounded-xl px-4 py-3.5 text-base mb-6"
+            <Input
+              label={previewing ? 'Link do produto (procurando…)' : 'Link do produto'}
+              leftIcon="link"
               placeholder="https://..."
-              placeholderTextColor="#4a7055"
               value={url}
-              onChangeText={setUrl}
+              onChangeText={handleUrlChange}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
-              multiline
             />
 
-            <Text className="text-surface-300 text-sm mb-2 ml-1">Cômodo</Text>
+            {(previewing || preview || previewError) && (
+              <View className="mt-5">
+                <PreviewCard
+                  loading={previewing}
+                  preview={preview}
+                  error={previewError}
+                  url={url.trim()}
+                />
+              </View>
+            )}
+
+            <View className="mt-5">
+              <Input
+                label="Loja"
+                leftIcon="store"
+                placeholder="Ex.: Shopee, Amazon, Mercado Livre"
+                value={storeName}
+                onChangeText={handleStoreNameChange}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View className="mt-5">
+              <Input
+                label="Descrição"
+                placeholder="Pra que serve, tamanho, observações…"
+                value={description}
+                onChangeText={handleDescriptionChange}
+                multiline
+                minHeight={120}
+                autoCapitalize="sentences"
+              />
+            </View>
+
+            <Text
+              className="text-ink-3 font-semibold mt-6 mb-3 ml-0.5"
+              style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' }}
+            >
+              Cômodo
+            </Text>
             {!rooms || rooms.length === 0 ? (
-              <Text className="text-surface-500 text-sm mb-6 ml-1">
+              <Text className="text-ink-4 text-sm mb-6 ml-1">
                 Nenhum cômodo cadastrado.
               </Text>
             ) : (
@@ -151,15 +287,19 @@ export default function AddProductScreen() {
                     <Pressable
                       key={room.id}
                       onPress={() => setSelectedRoomId(room.id)}
-                      className={`rounded-xl px-4 py-3 flex-row items-center ${
-                        selected
-                          ? 'bg-primary-600'
-                          : 'bg-surface-800 active:bg-surface-700'
-                      }`}
+                      accessibilityRole="button"
+                      accessibilityLabel={room.name}
+                      className="rounded-2xl px-4 py-3 flex-row items-center active:opacity-80"
+                      style={{
+                        backgroundColor: selected ? '#34B26C' : '#122820',
+                        borderWidth: 1,
+                        borderColor: selected ? '#34B26C' : '#1B3326',
+                      }}
                     >
                       <Text className="text-lg mr-2">{room.icon ?? '📦'}</Text>
                       <Text
-                        className={`font-semibold ${selected ? 'text-white' : 'text-surface-200'}`}
+                        className="font-semibold text-sm"
+                        style={{ color: selected ? '#04140A' : '#C2D0C5' }}
                       >
                         {room.name}
                       </Text>
@@ -169,20 +309,89 @@ export default function AddProductScreen() {
               </View>
             )}
 
-            <Pressable
-              className="w-full bg-primary-600 rounded-2xl py-4 items-center active:bg-primary-700"
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white font-semibold text-base">Adicionar</Text>
-              )}
-            </Pressable>
+            <Button label="Adicionar item" onPress={handleSubmit} loading={submitting} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function PreviewCard({
+  loading,
+  preview,
+  error,
+  url,
+}: {
+  loading: boolean;
+  preview: PreviewState | null;
+  error: boolean;
+  url: string;
+}) {
+  if (loading && !preview) {
+    return (
+      <View className="bg-bg-2 border border-line-1 rounded-2xl p-4 flex-row items-center" style={{ gap: 12 }}>
+        <View
+          className="rounded-xl"
+          style={{ width: 64, height: 64, backgroundColor: '#18372C' }}
+        />
+        <View className="flex-1">
+          <View className="rounded-md mb-2" style={{ height: 14, width: '70%', backgroundColor: '#18372C' }} />
+          <View className="rounded-md" style={{ height: 12, width: '40%', backgroundColor: '#122820' }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error && !preview) {
+    return (
+      <View className="bg-bg-2 border border-line-1 rounded-2xl p-4 flex-row items-center" style={{ gap: 12 }}>
+        <Icon name="alert-circle" tone="coral" size={20} outline />
+        <Text className="text-ink-2 text-xs flex-1">
+          Não rolou buscar a prévia. Preencha os campos abaixo e seguimos.
+        </Text>
+      </View>
+    );
+  }
+
+  if (!preview) return null;
+
+  const headline = preview.title || preview.storeName || url;
+
+  return (
+    <View className="bg-bg-2 border border-line-1 rounded-2xl p-4">
+      <View className="flex-row items-start" style={{ gap: 12 }}>
+        {preview.image ? (
+          <Image
+            source={{ uri: preview.image }}
+            className="rounded-xl"
+            style={{ width: 64, height: 64, backgroundColor: '#18372C' }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            className="rounded-xl items-center justify-center"
+            style={{ width: 64, height: 64, backgroundColor: '#18372C' }}
+          >
+            <Icon name="image" tone="ink-3" size={22} outline />
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="text-ink-1 font-semibold text-base" numberOfLines={2}>
+            {headline}
+          </Text>
+          {preview.storeName && (
+            <Text className="text-ink-3 text-xs mt-0.5" numberOfLines={1}>
+              {preview.storeName}
+            </Text>
+          )}
+          {preview.priceCents != null && (
+            <Text className="text-brand-300 font-bold text-base mt-1">
+              {formatBRL(preview.priceCents)}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
   );
 }

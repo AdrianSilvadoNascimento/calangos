@@ -19,9 +19,13 @@ export function useRealtimeSync(coupleId: string | undefined) {
   useEffect(() => {
     if (!coupleId || !PUSHER_KEY || !PUSHER_CLUSTER) return;
 
+    const invalidateProgress = () => {
+      queryClient.invalidateQueries({ queryKey: ['couple-progress'] });
+    };
     const invalidateAll = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      invalidateProgress();
     };
 
     let pusher: InstanceType<typeof Pusher>;
@@ -53,10 +57,21 @@ export function useRealtimeSync(coupleId: string | undefined) {
     const channel = pusher.subscribe(`private-couple-${coupleId}`);
 
     channel.bind('product.created', invalidateAll);
-    channel.bind('product.updated', () =>
-      queryClient.invalidateQueries({ queryKey: ['products'] }),
-    );
+    channel.bind('product.updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      invalidateProgress();
+    });
     channel.bind('product.deleted', invalidateAll);
+
+    channel.bind('activity.created', () => {
+      queryClient.invalidateQueries({ queryKey: ['couple-activity'] });
+    });
+    channel.bind('milestone.unlocked', () => {
+      queryClient.invalidateQueries({ queryKey: ['couple-milestones'] });
+    });
+    channel.bind('notification.created', () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
 
     // Catch up on missed events after Pusher reconnects (e.g. brief network drop).
     // The first 'connected' event fires on initial subscribe — skip that one.

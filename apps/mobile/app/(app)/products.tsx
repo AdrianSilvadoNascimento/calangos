@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { useProducts, type ProductData } from '../../hooks/use-products';
 import { useRooms } from '../../hooks/use-rooms';
-import { ProductCard } from '../../components/product-card';
+import { Chip, ItemCard } from '../../components/ui';
 import { InfiniteList } from '../../components/infinite-list';
 
 const STATUS_FILTERS = [
@@ -14,9 +15,18 @@ const STATUS_FILTERS = [
 ] as const;
 
 export default function AllProductsScreen() {
+  const { highlight } = useLocalSearchParams<{ highlight?: string }>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const productsQuery = useProducts({ status: statusFilter });
   const roomsQuery = useRooms();
+  const [highlightedId, setHighlightedId] = useState<string | null>(highlight ?? null);
+
+  useEffect(() => {
+    if (!highlight) return;
+    setHighlightedId(highlight);
+    const t = setTimeout(() => setHighlightedId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlight]);
 
   const roomMap = useMemo(() => {
     const flat = roomsQuery.data?.pages.flatMap((p) => p.items) ?? [];
@@ -29,8 +39,10 @@ export default function AllProductsScreen() {
   const ListHeader = (
     <View>
       <View className="px-6 pt-4 pb-2">
-        <Text className="text-2xl font-bold text-white">Todos os itens</Text>
-        <Text className="text-surface-400 mt-1">
+        <Text className="text-2xl font-bold text-ink-1" style={{ letterSpacing: -0.5 }}>
+          Todos os itens
+        </Text>
+        <Text className="text-ink-3 mt-1 text-sm">
           {productsQuery.data
             ? `${totalLoaded}${productsQuery.hasNextPage ? '+' : ''} ${
                 totalLoaded === 1 ? 'item' : 'itens'
@@ -52,23 +64,12 @@ export default function AllProductsScreen() {
         {STATUS_FILTERS.map((filter) => {
           const active = statusFilter === filter.key;
           return (
-            <Pressable
+            <Chip
               key={filter.label}
+              label={filter.label}
+              variant={active ? 'active' : 'default'}
               onPress={() => setStatusFilter(filter.key)}
-              className={`rounded-full px-4 py-2 ${
-                active
-                  ? 'bg-primary-600'
-                  : 'bg-surface-800 active:bg-surface-700'
-              }`}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  active ? 'text-white' : 'text-surface-300'
-                }`}
-              >
-                {filter.label}
-              </Text>
-            </Pressable>
+            />
           );
         })}
       </ScrollView>
@@ -76,24 +77,25 @@ export default function AllProductsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900">
+    <SafeAreaView className="flex-1 bg-bg-1">
       <InfiniteList<ProductData>
         query={productsQuery}
         keyExtractor={(item) => item.id}
+        highlightId={highlightedId}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32 }}
         ListHeaderComponent={ListHeader}
         emptyTitle="Nenhum item ainda"
         emptySubtitle={'Adicione produtos nos cômodos ou\ncole um link na tela inicial'}
-        emptyIcon="📦"
-        errorTitle="Erro ao carregar itens"
+        emptyMascot="organizando"
         renderItem={({ item }) => {
           const room = roomMap.get(item.roomId);
           return (
-            <ProductCard
+            <ItemCard
               product={item}
               showRoom
               roomName={room?.name}
               roomIcon={room?.icon ?? undefined}
+              highlighted={item.id === highlightedId}
             />
           );
         }}

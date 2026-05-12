@@ -13,16 +13,20 @@ import { Session } from '@thallesp/nestjs-better-auth';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import { ProductsService } from './products.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { ScrapingService } from '../scraping/scraping.service';
 import { ZodValidationPipe } from '../common/pipes';
 import {
   createProductSchema,
   updateProductSchema,
   paginationQuerySchema,
+  productPreviewQuerySchema,
 } from '@enxoval/contracts';
 import type {
   CreateProductInput,
   UpdateProductInput,
   PaginationQuery,
+  ProductPreviewQuery,
+  ProductPreviewResponse,
 } from '@enxoval/contracts';
 
 @Controller()
@@ -30,7 +34,24 @@ export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
     private readonly profilesService: ProfilesService,
+    private readonly scrapingService: ScrapingService,
   ) {}
+
+  @Get('products/preview')
+  async preview(
+    @Query(new ZodValidationPipe(productPreviewQuerySchema))
+    query: ProductPreviewQuery,
+  ): Promise<ProductPreviewResponse> {
+    const metadata = await this.scrapingService.scrape(query.url);
+    return {
+      title: metadata.title,
+      description: metadata.description,
+      image: metadata.image,
+      priceCents: metadata.priceCents,
+      storeName: metadata.storeName,
+      storeNameConfident: metadata.storeNameConfident,
+    };
+  }
 
   @Get('rooms/:roomId/products')
   findByRoom(
@@ -78,7 +99,7 @@ export class ProductsController {
     @Headers('x-pusher-socket-id') socketId?: string,
   ) {
     await this.productsService.assertProductOwnership(id, session.user.id);
-    return this.productsService.update(id, dto, socketId);
+    return this.productsService.update(id, dto, session.user.id, socketId);
   }
 
   @Delete('products/:id')
@@ -88,6 +109,6 @@ export class ProductsController {
     @Headers('x-pusher-socket-id') socketId?: string,
   ) {
     await this.productsService.assertProductOwnership(id, session.user.id);
-    return this.productsService.remove(id, socketId);
+    return this.productsService.remove(id, session.user.id, socketId);
   }
 }

@@ -13,12 +13,23 @@ import type {
   CreateProductInput,
   UpdateProductInput,
   Paginated,
+  ActivityType,
 } from '@enxoval/contracts';
 import { extractDomain } from '@enxoval/utils';
 import { PusherService } from '../realtime/pusher.service';
 import { ScrapingService } from '../scraping/scraping.service';
+import { ActivityService } from '../activity/activity.service';
+import { MilestonesService } from '../milestones/milestones.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Product = typeof products.$inferSelect;
+
+const STATUS_TO_ACTIVITY: Record<Product['status'], ActivityType> = {
+  wishlist: 'product.wishlisted',
+  purchased: 'product.purchased',
+  received: 'product.received',
+  cancelled: 'product.cancelled',
+};
 
 @Injectable()
 export class ProductsService {
@@ -26,6 +37,9 @@ export class ProductsService {
     @Inject(DB_TOKEN) private db: DB,
     private readonly pusherService: PusherService,
     private readonly scrapingService: ScrapingService,
+    private readonly activityService: ActivityService,
+    private readonly milestonesService: MilestonesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findByRoom(
@@ -61,7 +75,7 @@ export class ProductsService {
     const conditions = [sql`${products.roomId} IN ${roomIds}`];
 
     if (filters.status) {
-      conditions.push(eq(products.status, filters.status as 'wishlist' | 'purchased' | 'received' | 'cancelled'));
+      conditions.push(eq(products.status, filters.status as Product['status']));
     }
 
     if (filters.search) {
@@ -105,9 +119,10 @@ export class ProductsService {
     }
 
     const defaultStoreName = extractDomain(dto.url);
-
-    // Phase 6 — call scraping service to enrich metadata
     const metadata = await this.scrapingService.scrape(dto.url);
+
+    const storeNameFromDto = dto.storeName?.trim();
+    const descriptionFromDto = dto.description?.trim();
 
     const [product] = await this.db
       .insert(products)
@@ -116,11 +131,11 @@ export class ProductsService {
         roomId: dto.roomId,
         addedBy: userId,
         title: dto.title ?? metadata.title ?? null,
-        description: metadata.description ?? null,
+        description: descriptionFromDto || metadata.description || null,
         imageUrl: metadata.image ?? null,
         priceCents: dto.priceCents ?? metadata.priceCents ?? null,
         notes: dto.notes ?? null,
-        storeName: metadata.storeName ?? defaultStoreName,
+        storeName: storeNameFromDto || metadata.storeName || defaultStoreName,
       })
       .returning();
 
@@ -130,21 +145,49 @@ export class ProductsService {
         { type: 'product.created', payload: product },
         excludeSocketId,
       );
-    }
 
-    // TODO: Phase 8 — send push notification to partner
+      await this.activityService.record({
+        coupleId: targetRoom.coupleId,
+        actorUserId: userId,
+        type: 'product.added',
+        targetType: 'product',
+        targetId: product.id,
+        metadata: {
+          title: product.title ?? product.storeName,
+          roomId: product.roomId,
+          roomName: targetRoom.name,
+        },
+        excludeSocketId,
+      });
+
+      await this.notificationsService.notifyCouple(
+        targetRoom.coupleId,
+        {
+          type: 'product.added',
+          title: 'Novo item no enxoval ♥',
+          body: product.title ?? product.storeName ?? 'Item adicionado',
+          data: { productId: product.id, roomId: product.roomId },
+        },
+        { exceptUserId: userId, respectPreference: 'notifyOnPartnerAdd' },
+      );
+
+      await this.milestonesService.evaluate(targetRoom.coupleId, userId, excludeSocketId);
+    }
 
     return product;
   }
 
-  async update(id: string, dto: UpdateProductInput, excludeSocketId?: string) {
+  async update(id: string, dto: UpdateProductInput, userId: string, excludeSocketId?: string) {
+    const before = await this.db.query.products.findFirst({
+      where: eq(products.id, id),
+    });
+    if (!before) throw new NotFoundException('Product not found');
+
     const [product] = await this.db
       .update(products)
       .set({ ...dto, updatedAt: new Date() })
       .where(eq(products.id, id))
       .returning();
-
-    if (!product) throw new NotFoundException('Product not found');
 
     const room = await this.db.query.rooms.findFirst({
       where: eq(rooms.id, product.roomId),
@@ -156,12 +199,54 @@ export class ProductsService {
         { type: 'product.updated', payload: product },
         excludeSocketId,
       );
+
+      const statusChanged = dto.status && dto.status !== before.status;
+      if (statusChanged) {
+        const activityType = STATUS_TO_ACTIVITY[product.status];
+        await this.activityService.record({
+          coupleId: room.coupleId,
+          actorUserId: userId,
+          type: activityType,
+          targetType: 'product',
+          targetId: product.id,
+          metadata: {
+            title: product.title ?? product.storeName,
+            roomId: product.roomId,
+            roomName: room.name,
+            from: before.status,
+            to: product.status,
+          },
+          excludeSocketId,
+        });
+
+        await this.notificationsService.notifyCouple(
+          room.coupleId,
+          {
+            type: product.status === 'received' ? 'product.received' : 'product.purchased',
+            title:
+              product.status === 'received'
+                ? 'Item recebido em casa 🦎'
+                : product.status === 'purchased'
+                  ? 'Item comprado 🛒'
+                  : 'Status atualizado',
+            body: product.title ?? product.storeName ?? 'Item',
+            data: {
+              productId: product.id,
+              roomId: product.roomId,
+              status: product.status,
+            },
+          },
+          { exceptUserId: userId, respectPreference: 'notifyOnStatusChange' },
+        );
+
+        await this.milestonesService.evaluate(room.coupleId, userId, excludeSocketId);
+      }
     }
 
     return product;
   }
 
-  async remove(id: string, excludeSocketId?: string) {
+  async remove(id: string, userId: string, excludeSocketId?: string) {
     const [product] = await this.db
       .delete(products)
       .where(eq(products.id, id))
@@ -179,6 +264,9 @@ export class ProductsService {
         { type: 'product.deleted', payload: { id, roomId: product.roomId } },
         excludeSocketId,
       );
+
+      // Re-evaluate milestones — removing a product can't unlock new ones, but it
+      // also can't un-unlock; safe to skip the call here for performance.
     }
 
     return { deleted: true };

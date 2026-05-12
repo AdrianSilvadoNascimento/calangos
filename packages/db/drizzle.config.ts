@@ -1,16 +1,11 @@
-import 'dotenv/config';
+import { serverEnv } from '@enxoval/env/server';
 import type { Config } from 'drizzle-kit';
-
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is required for drizzle-kit. Check your packages/db/.env file.');
-}
 
 export default {
   schema: './src/schema/index.ts',
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: serverEnv.DATABASE_URL,
   },
 } satisfies Config;
-

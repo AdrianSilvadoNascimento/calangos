@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { Pencil, Trash2, ShoppingCart, PackageCheck, XCircle, Star } from 'lucide-react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { useUpdateProduct } from '../hooks/use-update-product';
 import { useDeleteProduct } from '../hooks/use-delete-product';
 import type { ProductData } from '../hooks/use-products';
-import { useDialog } from './ui/dialog';
 import { reportError } from '../lib/report-error';
+import {
+  Button,
+  Icon,
+  Input,
+  Sheet,
+  SheetDivider,
+  useDialog,
+  type IconName,
+} from './ui';
 
 type Mode = 'menu' | 'edit' | 'delete-confirm';
 
@@ -27,24 +26,29 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
   const [mode, setMode] = useState<Mode>('menu');
   const [title, setTitle] = useState(product.title ?? '');
   const [url, setUrl] = useState(product.url);
+  const [storeName, setStoreName] = useState(product.storeName ?? '');
+  const [description, setDescription] = useState(product.description ?? '');
   const [changingStatus, setChangingStatus] = useState(false);
   const dialog = useDialog();
 
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
-  // Reset state whenever the dialog opens for a (potentially) new product.
   useEffect(() => {
     if (visible) {
       setMode('menu');
       setTitle(product.title ?? '');
       setUrl(product.url);
+      setStoreName(product.storeName ?? '');
+      setDescription(product.description ?? '');
       setChangingStatus(false);
     }
-  }, [visible, product.id, product.title, product.url]);
+  }, [visible, product.id, product.title, product.url, product.storeName, product.description]);
+
+  const busy = updateProduct.isPending || deleteProduct.isPending || changingStatus;
 
   const handleClose = () => {
-    if (updateProduct.isPending || deleteProduct.isPending || changingStatus) return;
+    if (busy) return;
     onClose();
   };
 
@@ -57,7 +61,7 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
     } catch (err: any) {
       reportError(err, { action: 'product.changeStatus' });
       await dialog.alert({
-        title: 'Erro',
+        title: 'Ops, não rolou',
         message: err?.response?.data?.message ?? 'Não foi possível alterar o status.',
       });
     } finally {
@@ -68,6 +72,8 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
   const handleSaveEdit = async () => {
     const trimmedUrl = url.trim();
     const trimmedTitle = title.trim();
+    const trimmedStore = storeName.trim();
+    const trimmedDescription = description.trim();
     if (!trimmedUrl) {
       await dialog.alert({ title: 'Link obrigatório', message: 'O link do produto não pode ficar vazio.' });
       return;
@@ -77,9 +83,11 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
       return;
     }
 
-    const dto: { title?: string; url?: string } = {};
+    const dto: { title?: string; url?: string; storeName?: string; description?: string } = {};
     if (trimmedTitle !== (product.title ?? '')) dto.title = trimmedTitle;
     if (trimmedUrl !== product.url) dto.url = trimmedUrl;
+    if (trimmedStore !== (product.storeName ?? '')) dto.storeName = trimmedStore;
+    if (trimmedDescription !== (product.description ?? '')) dto.description = trimmedDescription;
 
     if (Object.keys(dto).length === 0) {
       onClose();
@@ -92,7 +100,7 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
     } catch (err: any) {
       reportError(err, { action: 'product.update' });
       await dialog.alert({
-        title: 'Erro',
+        title: 'Ops, não rolou',
         message: err?.response?.data?.message ?? 'Não foi possível salvar as alterações.',
       });
     }
@@ -105,65 +113,62 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
     } catch (err: any) {
       reportError(err, { action: 'product.delete' });
       await dialog.alert({
-        title: 'Erro',
+        title: 'Ops, não rolou',
         message: err?.response?.data?.message ?? 'Não foi possível excluir o item.',
       });
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-      statusBarTranslucent
+    <Sheet
+      open={visible}
+      onClose={handleClose}
+      dismissable={!busy}
+      title={
+        mode === 'edit'
+          ? 'Editar item'
+          : mode === 'delete-confirm'
+            ? 'Excluir item?'
+            : product.title || product.storeName || 'Produto sem título'
+      }
+      scrollable={mode === 'edit'}
     >
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <Pressable
-          className="flex-1 bg-black/70 items-center justify-center px-6"
-          onPress={handleClose}
-        >
-          {/* Stop propagation so taps inside the card don't close the modal. */}
-          <Pressable
-            onPress={() => undefined}
-            className="w-full max-w-sm bg-surface-900 rounded-3xl border border-surface-700 overflow-hidden"
-          >
-            {mode === 'menu' && (
-              <MenuPanel
-                product={product}
-                onEdit={() => setMode('edit')}
-                onDelete={() => setMode('delete-confirm')}
-                onStatusChange={handleStatusChange}
-                changingStatus={changingStatus}
-                onCancel={handleClose}
-              />
-            )}
+      {mode === 'menu' && (
+        <MenuPanel
+          product={product}
+          onEdit={() => setMode('edit')}
+          onDelete={() => setMode('delete-confirm')}
+          onStatusChange={handleStatusChange}
+          changingStatus={changingStatus}
+        />
+      )}
 
-            {mode === 'edit' && (
-              <EditPanel
-                title={title}
-                url={url}
-                onTitleChange={setTitle}
-                onUrlChange={setUrl}
-                onSave={handleSaveEdit}
-                onBack={() => setMode('menu')}
-                saving={updateProduct.isPending}
-              />
-            )}
+      {mode === 'edit' && (
+        <EditPanel
+          imageUrl={product.imageUrl}
+          title={title}
+          url={url}
+          storeName={storeName}
+          description={description}
+          onTitleChange={setTitle}
+          onUrlChange={setUrl}
+          onStoreNameChange={setStoreName}
+          onDescriptionChange={setDescription}
+          onSave={handleSaveEdit}
+          onBack={() => setMode('menu')}
+          saving={updateProduct.isPending}
+        />
+      )}
 
-            {mode === 'delete-confirm' && (
-              <DeleteConfirmPanel
-                productLabel={product.title || product.storeName || 'este item'}
-                onConfirm={handleConfirmDelete}
-                onCancel={() => setMode('menu')}
-                deleting={deleteProduct.isPending}
-              />
-            )}
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </Modal>
+      {mode === 'delete-confirm' && (
+        <DeleteConfirmPanel
+          productLabel={product.title || product.storeName || 'este item'}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setMode('menu')}
+          deleting={deleteProduct.isPending}
+        />
+      )}
+    </Sheet>
   );
 }
 
@@ -171,13 +176,13 @@ export function ProductActions({ product, visible, onClose }: ProductActionsProp
 const STATUS_OPTIONS: {
   key: ProductData['status'];
   label: string;
-  icon: typeof ShoppingCart;
+  icon: IconName;
   color: string;
 }[] = [
-  { key: 'wishlist',   label: 'Desejado',  icon: Star,         color: '#fbbf24' },
-  { key: 'purchased',  label: 'Comprado',  icon: ShoppingCart,  color: '#60a5fa' },
-  { key: 'received',   label: 'Recebido',  icon: PackageCheck,  color: '#34d399' },
-  { key: 'cancelled',  label: 'Cancelado', icon: XCircle,       color: '#f87171' },
+  { key: 'wishlist',  label: 'Desejado',  icon: 'star',          color: '#E89784' },
+  { key: 'purchased', label: 'Comprado',  icon: 'shopping-cart', color: '#7FB6D9' },
+  { key: 'received',  label: 'Recebido',  icon: 'package-check', color: '#5FCB8B' },
+  { key: 'cancelled', label: 'Cancelado', icon: 'x-circle',      color: '#E0746A' },
 ];
 
 // ── Menu (action sheet) ──────────────────────────────────────
@@ -187,81 +192,61 @@ function MenuPanel({
   onDelete,
   onStatusChange,
   changingStatus,
-  onCancel,
 }: {
   product: ProductData;
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (status: ProductData['status']) => void;
   changingStatus: boolean;
-  onCancel: () => void;
 }) {
-  const label = product.title || product.storeName || 'Produto sem título';
   const availableStatuses = STATUS_OPTIONS.filter((s) => s.key !== product.status);
 
   return (
     <View>
-      <View className="px-6 pt-6 pb-4 border-b border-surface-800">
-        <Text className="text-white font-semibold text-base" numberOfLines={2}>
-          {label}
-        </Text>
-        <Text className="text-surface-500 text-xs mt-1" numberOfLines={1}>
-          {product.url}
-        </Text>
-      </View>
+      <Text className="text-ink-3 text-xs mb-3 font-mono" numberOfLines={1}>
+        {product.url}
+      </Text>
 
-      {/* ── Status change options ── */}
-      {availableStatuses.map((option) => {
-        const Icon = option.icon;
-        return (
-          <Pressable
-            key={option.key}
-            className="px-6 py-4 flex-row items-center active:bg-surface-800"
-            onPress={() => onStatusChange(option.key)}
-            disabled={changingStatus}
-          >
-            {changingStatus ? (
-              <ActivityIndicator size={18} color={option.color} />
-            ) : (
-              <Icon size={18} color={option.color} />
-            )}
-            <Text className="text-white font-semibold text-base ml-3">
-              Marcar como {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {/* Status group (DESIGN_SYSTEM §6 + HI-FI §42) */}
+      {availableStatuses.map((option) => (
+        <Pressable
+          key={option.key}
+          className="flex-row items-center py-3 active:opacity-70"
+          style={{ gap: 12 }}
+          onPress={() => onStatusChange(option.key)}
+          disabled={changingStatus}
+        >
+          <Icon name={option.icon} color={option.color} size={20} />
+          <Text className="text-ink-1 font-semibold text-base">
+            Marcar como {option.label}
+          </Text>
+        </Pressable>
+      ))}
 
-      <View className="h-px bg-surface-800 mx-6" />
+      <SheetDivider />
 
+      {/* Utility group */}
       <Pressable
-        className="px-6 py-4 flex-row items-center active:bg-surface-800"
+        className="flex-row items-center py-3 active:opacity-70"
+        style={{ gap: 12 }}
         onPress={onEdit}
         disabled={changingStatus}
       >
-        <Pencil size={18} color="#4ade80" />
-        <Text className="text-white font-semibold text-base ml-3">Editar</Text>
+        <Icon name="pencil" tone="brand" size={20} outline />
+        <Text className="text-ink-1 font-semibold text-base">Editar</Text>
       </Pressable>
 
-      <View className="h-px bg-surface-800 mx-6" />
+      <SheetDivider />
 
+      {/* Destructive group */}
       <Pressable
-        className="px-6 py-4 flex-row items-center active:bg-surface-800"
+        className="flex-row items-center py-3 active:opacity-70"
+        style={{ gap: 12 }}
         onPress={onDelete}
         disabled={changingStatus}
       >
-        <Trash2 size={18} color="#f87171" />
-        <Text className="text-red-400 font-semibold text-base ml-3">Excluir</Text>
-      </Pressable>
-
-      <View className="h-px bg-surface-800" />
-
-      <Pressable
-        className="px-6 py-4 items-center active:bg-surface-800"
-        onPress={onCancel}
-        disabled={changingStatus}
-      >
-        <Text className="text-surface-400 font-semibold text-base">Cancelar</Text>
+        <Icon name="trash" tone="danger" size={20} outline />
+        <Text className="text-danger font-semibold text-base">Excluir</Text>
       </Pressable>
     </View>
   );
@@ -269,64 +254,103 @@ function MenuPanel({
 
 // ── Edit form ────────────────────────────────────────────────
 function EditPanel({
+  imageUrl,
   title,
   url,
+  storeName,
+  description,
   onTitleChange,
   onUrlChange,
+  onStoreNameChange,
+  onDescriptionChange,
   onSave,
   onBack,
   saving,
 }: {
+  imageUrl: string | null;
   title: string;
   url: string;
+  storeName: string;
+  description: string;
   onTitleChange: (v: string) => void;
   onUrlChange: (v: string) => void;
+  onStoreNameChange: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
   onSave: () => void;
   onBack: () => void;
   saving: boolean;
 }) {
   return (
-    <View className="px-6 pt-6 pb-6">
-      <Text className="text-white font-bold text-lg mb-5">Editar item</Text>
+    <View>
+      {imageUrl && (
+        <View className="mb-5 items-center">
+          <View
+            className="rounded-2xl overflow-hidden border border-line-1"
+            style={{ width: 160, height: 160, backgroundColor: '#18372C' }}
+          >
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          </View>
+          <Text className="text-ink-4 text-xs mt-2">
+            Foto vem do link — não dá pra editar por aqui
+          </Text>
+        </View>
+      )}
 
-      <Text className="text-surface-300 text-sm mb-1.5 ml-1">Nome</Text>
-      <TextInput
-        className="bg-surface-800 text-white rounded-xl px-4 py-3 text-base mb-4"
-        placeholder="Nome do item"
-        placeholderTextColor="#4a7055"
-        value={title}
-        onChangeText={onTitleChange}
-        autoCapitalize="sentences"
-      />
+      <View className="mb-4">
+        <Input
+          label="Nome"
+          placeholder="Nome do item"
+          value={title}
+          onChangeText={onTitleChange}
+          autoCapitalize="sentences"
+        />
+      </View>
 
-      <Text className="text-surface-300 text-sm mb-1.5 ml-1">Link</Text>
-      <TextInput
-        className="bg-surface-800 text-white rounded-xl px-4 py-3 text-base mb-6"
-        placeholder="https://..."
-        placeholderTextColor="#4a7055"
-        value={url}
-        onChangeText={onUrlChange}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-        multiline
-      />
+      <View className="mb-4">
+        <Input
+          label="Loja"
+          leftIcon="store"
+          placeholder="Ex.: Shopee, Amazon, Mercado Livre"
+          value={storeName}
+          onChangeText={onStoreNameChange}
+          autoCapitalize="words"
+          autoCorrect={false}
+        />
+      </View>
 
-      <Pressable
-        className="w-full bg-primary-600 rounded-2xl py-3.5 items-center active:bg-primary-700"
-        onPress={onSave}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white font-semibold text-base">Salvar</Text>
-        )}
-      </Pressable>
+      <View className="mb-4">
+        <Input
+          label="Descrição"
+          placeholder="Pra que serve, tamanho, observações…"
+          value={description}
+          onChangeText={onDescriptionChange}
+          multiline
+          minHeight={100}
+          autoCapitalize="sentences"
+        />
+      </View>
 
-      <Pressable className="w-full py-3 items-center mt-1" onPress={onBack} disabled={saving}>
-        <Text className="text-surface-400 font-semibold">Cancelar</Text>
-      </Pressable>
+      <View className="mb-6">
+        <Input
+          label="Link"
+          leftIcon="link"
+          placeholder="https://..."
+          value={url}
+          onChangeText={onUrlChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+        />
+      </View>
+
+      <Button label="Salvar item" onPress={onSave} loading={saving} />
+      <View className="mt-2">
+        <Button label="Cancelar" variant="ghost" onPress={onBack} disabled={saving} />
+      </View>
     </View>
   );
 }
@@ -344,33 +368,23 @@ function DeleteConfirmPanel({
   deleting: boolean;
 }) {
   return (
-    <View className="px-6 pt-6 pb-6">
-      <Text className="text-white font-bold text-lg mb-2">Excluir item?</Text>
-      <Text className="text-surface-400 text-sm mb-6">
+    <View>
+      <Text className="text-ink-2 text-sm mb-6">
         Tem certeza que deseja excluir{' '}
-        <Text className="text-white font-semibold">{productLabel}</Text>? Essa ação
-        não pode ser desfeita.
+        <Text className="text-ink-1 font-semibold">{productLabel}</Text>? Essa ação não pode
+        ser desfeita.
       </Text>
 
-      <Pressable
-        className="w-full bg-red-600 rounded-2xl py-3.5 items-center active:bg-red-700"
+      <Button
+        label="Excluir"
+        variant="danger-ghost"
+        leftIcon="trash"
         onPress={onConfirm}
-        disabled={deleting}
-      >
-        {deleting ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white font-semibold text-base">Excluir</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        className="w-full py-3 items-center mt-1"
-        onPress={onCancel}
-        disabled={deleting}
-      >
-        <Text className="text-surface-400 font-semibold">Cancelar</Text>
-      </Pressable>
+        loading={deleting}
+      />
+      <View className="mt-2">
+        <Button label="Cancelar" variant="ghost" onPress={onCancel} disabled={deleting} />
+      </View>
     </View>
   );
 }

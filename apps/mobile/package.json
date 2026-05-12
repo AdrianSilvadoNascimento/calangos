@@ -19,6 +19,8 @@
     "@enxoval/contracts": "workspace:*",
     "@enxoval/env": "workspace:*",
     "@enxoval/utils": "workspace:*",
+    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/geist": "^0.4.1",
     "@expo/metro-runtime": "~6.1.2",
     "@react-native-community/netinfo": "11.4.1",
     "@sentry/react-native": "~7.2.0",
