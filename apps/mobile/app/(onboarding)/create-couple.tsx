@@ -43,7 +43,7 @@ export default function CreateCoupleScreen() {
         const data = await createInvite.mutateAsync(partnerEmail.trim());
         setInvite(data);
       } else {
-        router.replace('/(app)');
+        router.replace('/(app)/(tabs)');
       }
     } catch (err: any) {
       reportError(err, { action: 'couple.create' });
@@ -72,7 +72,7 @@ export default function CreateCoupleScreen() {
 
           <Pressable
             className="w-full bg-primary-600/20 border border-primary-600/40 rounded-2xl py-4 items-center mt-6 active:bg-primary-600/30"
-            onPress={() => router.replace('/(app)')}
+            onPress={() => router.replace('/(app)/(tabs)')}
           >
             <Text className="text-primary-300 font-semibold text-base">Continuar</Text>
           </Pressable>

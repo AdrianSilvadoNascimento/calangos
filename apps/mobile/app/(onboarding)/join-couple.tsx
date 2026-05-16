@@ -21,7 +21,7 @@ export default function JoinCoupleScreen() {
     setLoading(true);
     try {
       await api.post('/couples/join', { inviteCode: code });
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     } catch (err: any) {
       reportError(err, { action: 'couple.join' });
       await dialog.alert({

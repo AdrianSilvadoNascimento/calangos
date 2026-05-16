@@ -89,7 +89,7 @@ export default function SignInScreen() {
             />
           </View>
 
-          <View className="mb-2">
+          <View className="mb-8">
             <Input
               label="Senha"
               leftIcon="lock"
@@ -100,10 +100,6 @@ export default function SignInScreen() {
               autoComplete="password"
             />
           </View>
-
-          <Pressable className="self-end py-2 mb-6 active:opacity-70" onPress={() => {}}>
-            <Text className="text-brand-400 font-semibold text-sm">Esqueci a senha</Text>
-          </Pressable>
 
           <Button label="Entrar" onPress={handleSignIn} loading={loading} />
 
