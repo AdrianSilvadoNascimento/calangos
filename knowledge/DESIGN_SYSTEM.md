@@ -124,7 +124,7 @@ Padding padrão de tela: **18px horizontal** (com bottom-nav reservando 100px).
 - **Tamanho padrão**: 22px (inline), 26–28px (chip de cômodo), 18px (action row em sheet).
 - **Cor**: sempre `currentColor`; o pai define o tom.
 - **Biblioteca**: ver `src/icons.jsx`. Para novos ícones, manter mesmo viewBox 24×24, stroke 1.6px e fill semi-transparente.
-- **Emoji**: apenas em microcopy (💍 🌿 ♥ 🦎 🎉), **nunca** como ícone funcional.
+- **Emoji**: em UI hardcoded (botões, labels, action rows) usar **apenas Lucide** — nunca emoji como ícone funcional. Em microcopy livre (💍 🌿 ♥ 🦎 🎉). Em **conteúdo escolhido pelo usuário** (ex.: ícone do cômodo), o emoji é o próprio valor — renderizar como texto no lugar do Lucide.
 
 ---
 
@@ -155,6 +155,7 @@ Padding padrão de tela: **18px horizontal** (com bottom-nav reservando 100px).
 ### Tiles de cômodo
 - Card 2-col, padding 14, min-height 110.
 - Topo: chip de ícone 40×40 com bg `<color>1F` (12% opacity).
+- Chip renderiza **emoji escolhido pelo usuário** (Text 22px). Default `📦` quando nenhum emoji foi definido. Fallback Lucide `package` para registros legados sem emoji.
 - Barra de progresso 3px na cor do cômodo.
 
 ### Bottom Nav

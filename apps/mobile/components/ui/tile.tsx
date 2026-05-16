@@ -3,7 +3,10 @@ import { Icon, type IconName } from './icon';
 import { cn } from '../../lib/cn';
 
 export interface TileProps {
-  icon: IconName;
+  /** Lucide icon name — used when `emoji` is not provided. */
+  icon?: IconName;
+  /** User-chosen emoji. When set, renders as text in the chip and overrides `icon`. */
+  emoji?: string;
   iconColor: string;
   title: string;
   /** e.g. "8 itens · R$ 1.200" */
@@ -23,6 +26,7 @@ export interface TileProps {
  */
 export function Tile({
   icon,
+  emoji,
   iconColor,
   title,
   subtitle,
@@ -49,7 +53,11 @@ export function Tile({
         className="items-center justify-center rounded-xl mb-3"
         style={{ width: 40, height: 40, backgroundColor: `${iconColor}1F` }}
       >
-        <Icon name={icon} size={22} color={iconColor} />
+        {emoji ? (
+          <Text style={{ fontSize: 22, lineHeight: 26 }}>{emoji}</Text>
+        ) : (
+          <Icon name={icon ?? 'package'} size={22} color={iconColor} />
+        )}
       </View>
 
       <Text className="text-ink-1 font-semibold text-sm" numberOfLines={1}>

@@ -30,8 +30,8 @@
 
 ### Ícones
 
-- **Apenas Lucide** (lucide-react-native), em estilo duotone do sistema (`stroke 1.6`, fill semi-transparente).
-- Emojis só em **microcopy** (💍 ♥ 🦎 🎉). Nunca como ícone funcional.
+- **Apenas Lucide** (lucide-react-native) em UI hardcoded, em estilo duotone do sistema (`stroke 1.6`, fill semi-transparente).
+- Emojis em **microcopy** (💍 ♥ 🦎 🎉) e em **conteúdo escolhido pelo usuário** (ex.: ícone do cômodo, onde o emoji é o próprio valor salvo). Nunca como ícone funcional hardcoded.
 - Sem mistura com Heroicons, Material, Feather, etc.
 
 ### Mascote

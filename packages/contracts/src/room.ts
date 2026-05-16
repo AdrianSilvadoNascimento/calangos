@@ -2,12 +2,12 @@ import { z } from 'zod';
 
 export const createRoomSchema = z.object({
   name: z.string().min(1).max(100),
-  icon: z.string().max(10).optional(),
+  icon: z.string().max(16).optional(),
 });
 
 export const updateRoomSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  icon: z.string().max(10).optional(),
+  icon: z.string().max(16).optional(),
   orderIndex: z.number().int().nonnegative().optional(),
 });
 

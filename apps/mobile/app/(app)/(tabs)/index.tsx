@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
@@ -19,31 +19,11 @@ import {
   NewTile,
   Sheet,
   Tile,
-  type IconName,
   useDialog,
 } from '../../../components/ui';
 
 const HTTP_URL = /^(https?:\/\/)/i;
-
-// Mapeamento emoji → nome do ícone (DESIGN_SYSTEM §5)
-const EMOJI_TO_ICON: Record<string, IconName> = {
-  '🛋️': 'armchair',
-  '🍳': 'utensils-crossed',
-  '🛏️': 'bed',
-  '🚿': 'bath',
-  '🧺': 'shirt',
-  '💻': 'laptop',
-  '🌿': 'leaf',
-  '🧹': 'brush',
-  '🪴': 'flower',
-  '🎮': 'gamepad',
-  '🪑': 'armchair',
-  '🍽️': 'utensils',
-  '🛁': 'bath',
-  '🏋️': 'dumbbell',
-  '📚': 'book',
-  '🎵': 'music',
-};
+const DEFAULT_EMOJI = '📦';
 
 const EMOJI_OPTIONS = [
   '🛋️', '🍳', '🛏️', '🚿', '🧺', '💻', '🌿', '🧹',
@@ -54,10 +34,6 @@ const ROOM_COLORS = ['#34B26C', '#E89784', '#7FB6D9', '#D9B370', '#D98A99', '#5F
 
 function getRoomColor(index: number) {
   return ROOM_COLORS[index % ROOM_COLORS.length] ?? ROOM_COLORS[0]!;
-}
-
-function iconFor(emoji?: string | null): IconName {
-  return (emoji && EMOJI_TO_ICON[emoji]) || 'package';
 }
 
 export default function RoomsScreen() {
@@ -78,7 +54,7 @@ export default function RoomsScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<RoomData | null>(null);
   const [draftName, setDraftName] = useState('');
-  const [draftIcon, setDraftIcon] = useState('📦');
+  const [draftIcon, setDraftIcon] = useState(DEFAULT_EMOJI);
 
   const handlePasteLink = async () => {
     try {
@@ -124,14 +100,14 @@ export default function RoomsScreen() {
   const openNewSheet = () => {
     setEditingRoom(null);
     setDraftName('');
-    setDraftIcon('📦');
+    setDraftIcon(DEFAULT_EMOJI);
     setSheetOpen(true);
   };
 
   const openEditSheet = (room: RoomData) => {
     setEditingRoom(room);
     setDraftName(room.name);
-    setDraftIcon(room.icon ?? '📦');
+    setDraftIcon(room.icon ?? DEFAULT_EMOJI);
     setSheetOpen(true);
   };
 
@@ -139,7 +115,7 @@ export default function RoomsScreen() {
     setSheetOpen(false);
     setEditingRoom(null);
     setDraftName('');
-    setDraftIcon('📦');
+    setDraftIcon(DEFAULT_EMOJI);
   };
 
   const needsInvite = !members || members.count < 2;
@@ -233,7 +209,7 @@ export default function RoomsScreen() {
           return (
             <View className="flex-1 mb-3">
               <Tile
-                icon={iconFor(room.icon)}
+                emoji={room.icon ?? DEFAULT_EMOJI}
                 iconColor={color}
                 title={room.name}
                 subtitle={`${productCount} ${productCount === 1 ? 'item' : 'itens'}`}
@@ -292,6 +268,42 @@ export default function RoomsScreen() {
               </Pressable>
             );
           })}
+        </View>
+
+        {/* Emoji custom — abre o teclado de emoji do sistema */}
+        <View className="flex-row items-center mt-3" style={{ gap: 10 }}>
+          <View
+            className="rounded-xl items-center justify-center"
+            style={{
+              width: 48,
+              height: 48,
+              backgroundColor: '#122820',
+              borderWidth: 1,
+              borderColor: '#1B3326',
+            }}
+          >
+            <Text style={{ fontSize: 22, lineHeight: 26 }}>{draftIcon || DEFAULT_EMOJI}</Text>
+          </View>
+          <TextInput
+            value={draftIcon}
+            onChangeText={(t) => setDraftIcon(t.slice(0, 16))}
+            placeholder="Ou digite outro emoji"
+            placeholderTextColor="#6B8077"
+            maxLength={16}
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Emoji personalizado"
+            className="flex-1 text-ink-1"
+            style={{
+              height: 48,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              backgroundColor: '#122820',
+              borderWidth: 1,
+              borderColor: '#1B3326',
+              fontSize: 16,
+            }}
+          />
         </View>
 
         <View className="mt-6">
